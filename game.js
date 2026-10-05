@@ -205,7 +205,7 @@ class Game {
   }
   spawn(keys) {
     const r = this.rng, head = this.at(this.headS), top = this.top + 44, bot = this.H - 150, n = keys.length;
-    const scs = keys.map(k => this.fs * (k === 'leaf' ? 2.4 : 1)), ws = keys.map((k, i) => FOOD[k].w * scs[i]), hs = keys.map((k, i) => FOOD[k].h * scs[i]);
+    const scs = keys.map(k => this.fs * (k === 'leaf' ? 3 : 1)), ws = keys.map((k, i) => FOOD[k].w * scs[i]), hs = keys.map((k, i) => FOOD[k].h * scs[i]);
     // lay the bundle out along a line, each piece just kissing the next
     const ang = n === 1 ? 0 : this.dayI === 5 ? (r() - .5) * .12 : [0, 0, PI / 2, .5, -.5][Math.floor(r() * 5)];
     const ca = Math.cos(ang), sa = Math.sin(ang), step = (i, j) => (Math.abs(ca) * (ws[i] + ws[j]) / 2 + Math.abs(sa) * (hs[i] + hs[j]) / 2) * (this.dayI === 5 ? .74 : .84);

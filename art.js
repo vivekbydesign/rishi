@@ -92,9 +92,9 @@ CP.buildSegments = () => {
 /* ---------- foods ---------- */
 const FOOD = CP.FOOD = {};
 const imgFood = (key, h, col, hole) => { FOOD[key] = { img: IMG[key], w: IMG[key].width * h / IMG[key].height, h, col, hole }; };
-const drawFood = (key, w, h, col, fn, hole = [0, 2]) => {
-  const pad = 6, [c, g] = canvas(w + pad * 2, h + pad * 2, 3); g.translate(w / 2 + pad, h / 2 + pad); g.scale(w / 56, h / 56);
-  fn(g, 3); FOOD[key] = { img: c, w: w + pad * 2, h: h + pad * 2, col, hole };
+const drawFood = (key, w, h, col, fn, hole = [0, 2], res = 3) => {
+  const pad = 6, [c, g] = canvas(w + pad * 2, h + pad * 2, res); g.translate(w / 2 + pad, h / 2 + pad); g.scale(w / 56, h / 56);
+  fn(g, res); FOOD[key] = { img: c, w: w + pad * 2, h: h + pad * 2, col, hole, res };
 };
 const line = (g, pts, w, col, cap = 'round') => { g.save(); g.lineWidth = w; g.lineCap = cap; g.lineJoin = 'round'; g.strokeStyle = col; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); g.restore(); };
 const leafPath = (x, y, len, wid, rot) => { const p = new Path2D(), c = Math.cos(rot), s = Math.sin(rot), T = (u, v) => [x + u * c - v * s, y + u * s + v * c];
@@ -179,17 +179,17 @@ CP.buildFoods = () => {
   }, [-4, -5]);
   drawFood('leaf', 64, 50, '#3f9a35', (g, k) => {
     const p = leafPath(-27, 14, 60, 15, -.5);
-    paper(g, p, 'leaf', { k, scale: .4 });
+    paper(g, p, 'leaf', { k, scale: .3 });
     g.save(); g.clip(p);
     const mid = [[-27, 14], [-5, 3], [20, -9], [27, -13]]; line(g, mid, 1.4, 'rgba(230,240,150,.6)');
     for (let i = 0; i < 6; i++) { const t = -22 + i * 8; const y = 14 - (t + 27) * .48; line(g, [[t, y], [t + 7, y - 9]], .9, 'rgba(230,240,150,.45)'); line(g, [[t, y], [t + 10, y + 3]], .9, 'rgba(230,240,150,.45)'); }
     g.restore();
     line(g, [[-27, 14], [-31, 18]], 2, '#6b4a1e');
-  }, [4, -2]);
+  }, [4, -2], 9); // shown ~3x bigger than other food on Sunday, so draw it sharper
   // eaten versions: punch the book's hole
   Object.entries(FOOD).forEach(([key, f]) => {
     if (!f.hole) { f.eaten = f.img; return; }
-    const W = f.w, H = f.h, [c, g] = canvas(W, H, 3); g.drawImage(f.img, 0, 0, W, H);
+    const W = f.w, H = f.h, [c, g] = canvas(W, H, f.res || 3); g.drawImage(f.img, 0, 0, W, H);
     const hx = W / 2 + f.hole[0], hy = H / 2 + f.hole[1], hr = Math.min(W, H) * .1;
     g.save(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.arc(hx, hy, hr, 0, TAU); g.fill(); g.restore();
     g.save(); g.globalCompositeOperation = 'source-atop'; g.lineWidth = 2.2; g.strokeStyle = 'rgba(70,25,0,.38)'; g.beginPath(); g.arc(hx, hy + .4, hr + 1, 0, TAU); g.stroke(); g.restore();
