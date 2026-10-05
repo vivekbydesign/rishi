@@ -6,11 +6,11 @@ const PI = Math.PI;
 
 const DAYS = CP.DAYS = [
   { day: 'Monday', what: 'he ate through one apple.', foods: ['apple'], tex: 'apple' },
-  { day: 'Tuesday', what: 'he ate through two pears.', foods: ['pear', 'pear'], tex: 'pear', together: true },
-  { day: 'Wednesday', what: 'he ate through three plums.', foods: ['plum', 'plum', 'plum'], tex: 'plum', together: true },
-  { day: 'Thursday', what: 'he ate through four strawberries.', foods: Array(4).fill('strawberry'), tex: 'strawberry' },
-  { day: 'Friday', what: 'he ate through five oranges.', foods: Array(5).fill('orange'), tex: 'orange' },
-  { day: 'Saturday', what: 'he ate through one piece of chocolate cake, one ice-cream cone, one pickle, one slice of Swiss cheese, one slice of salami, one lollipop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon.', short: 'cake, ice cream, pickle, cheese, salami, lollipop, cherry pie, sausage, cupcake & watermelon', foods: ['cake', 'icecream', 'pickle', 'cheese', 'salami', 'lollipop', 'pie', 'sausage', 'cupcake', 'watermelon'], tex: 'pink' },
+  { day: 'Tuesday', what: 'he ate through two pears.', foods: ['pear', 'pear'], tex: 'pear', bundle: true },
+  { day: 'Wednesday', what: 'he ate through three plums.', foods: ['plum', 'plum', 'plum'], tex: 'plum', bundle: true },
+  { day: 'Thursday', what: 'he ate through four strawberries.', foods: Array(4).fill('strawberry'), tex: 'strawberry', bundle: true },
+  { day: 'Friday', what: 'he ate through five oranges.', foods: Array(5).fill('orange'), tex: 'orange', bundle: true },
+  { day: 'Saturday', what: 'he ate through one piece of chocolate cake, one ice-cream cone, one pickle, one slice of Swiss cheese, one slice of salami, one lollipop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon.', short: 'cake, ice cream, pickle, cheese, salami, lollipop, cherry pie, sausage, cupcake & watermelon', foods: ['cake', 'icecream', 'pickle', 'cheese', 'salami', 'lollipop', 'pie', 'sausage', 'cupcake', 'watermelon'], tex: 'pink', rows: 3 },
   { day: 'Sunday', what: 'he ate through one nice green leaf, and after that he felt much better.', foods: ['leaf'], tex: 'leaf' },
 ];
 CP.TOTAL_FOODS = DAYS.reduce((a, d) => a + d.foods.length, 0);
@@ -189,27 +189,43 @@ class Game {
   nextDay() {
     this.dayI++;
     const d = DAYS[this.dayI]; if (!d) return;
-    this.pending = d.foods.slice(); this.spawn(d.together ? this.pending.splice(0) : [this.pending.shift()]);
+    this.pending = this.groups(d); this.spawn(this.pending.shift());
     if (this.dayI === 0) { this.timing = true; this.elapsed = 0; }
     this.hooks.onDay && this.hooks.onDay(this.dayI, d);
   }
+  // weekdays come in random side-by-side bundles (one sweep eats them all); Saturday comes in rows of three
+  groups(d) {
+    const f = d.foods.slice(), out = [];
+    if (d.rows) { while (f.length) out.push(f.splice(0, d.rows)); return out; }
+    if (!d.bundle) return f.map(k => [k]);
+    while (f.length) { const r = this.rng(), n = Math.min(f.length, r < .2 ? 1 : r < .75 ? 2 : 3); out.push(f.splice(0, n)); }
+    if (out.every(g => g.length === 1) && out.length > 1) out.splice(0, 2, out[0].concat(out[1]));
+    return out;
+  }
   spawn(keys) {
-    const m = 56 * this.fs, top = this.top + 44, bot = this.H - 150, r = this.rng, head = this.at(this.headS);
-    const placed = [];
+    const r = this.rng, head = this.at(this.headS), top = this.top + 44, bot = this.H - 150, n = keys.length;
+    const scs = keys.map(k => this.fs * (k === 'leaf' ? 2.4 : 1)), ws = keys.map((k, i) => FOOD[k].w * scs[i]), hs = keys.map((k, i) => FOOD[k].h * scs[i]);
+    // lay the bundle out along a line, each piece just kissing the next
+    const ang = n === 1 ? 0 : this.dayI === 5 ? (r() - .5) * .12 : [0, 0, PI / 2, .5, -.5][Math.floor(r() * 5)];
+    const ca = Math.cos(ang), sa = Math.sin(ang), step = (i, j) => (Math.abs(ca) * (ws[i] + ws[j]) / 2 + Math.abs(sa) * (hs[i] + hs[j]) / 2) * (this.dayI === 5 ? .74 : .84);
+    const offs = [0]; for (let i = 1; i < n; i++) offs.push(offs[i - 1] + step(i - 1, i)); const mid = offs[n - 1] / 2;
+    const pts = offs.map(o => [(o - mid) * ca, (o - mid) * sa]);
+    const ex = Math.max(...pts.map((p, i) => Math.abs(p[0]) + ws[i] / 2)) + 8, ey = Math.max(...pts.map((p, i) => Math.abs(p[1]) + hs[i] / 2)) + 8;
+    const x0 = Math.min(ex, this.W / 2), x1 = Math.max(this.W - ex, this.W / 2), y0 = Math.min(top + ey * .5, (top + bot) / 2), y1 = Math.max(bot - ey * .3, (top + bot) / 2);
+    const away = this.foods.filter(f => f.eaten < 0);
+    let best = null, bestD = -Infinity;
+    for (let k = 0; k < 160; k++) {
+      const x = lerp(x0, x1, r()), y = lerp(y0, y1, r());
+      const dh = Math.min(...pts.map(p => Math.hypot(x + p[0] - head[0], y + p[1] - head[1])));
+      let dmin = 160; away.forEach(f => pts.forEach(p => { dmin = Math.min(dmin, Math.hypot(x + p[0] - f.x, y + p[1] - f.y)); }));
+      const score = dmin + (dh > 110 ? 40 : -200) - Math.abs(x - this.W / 2) * .08;
+      if (score > bestD) { bestD = score; best = [x, y]; }
+      if (dmin >= 160 && dh > 130) break;
+    }
     keys.forEach((key, i) => {
-      const mm = Math.max(m, FOOD[key].w * this.fs * (key === 'leaf' ? 2.4 : 1) * .55);
-      let best = null, bestD = -1;
-      for (let k = 0; k < 160; k++) {
-        const x = mm + r() * (this.W - 2 * mm), y = top + r() * (bot - top);
-        const dh = Math.hypot(x - head[0], y - head[1]);
-        let dmin = Infinity; placed.concat(this.foods).forEach(f => { dmin = Math.min(dmin, Math.hypot(x - f.x, y - f.y)); });
-        const score = Math.min(dmin, 160) + (dh > 100 ? 40 : -200);
-        if (score > bestD) { bestD = score; best = [x, y]; }
-        if (dmin > 74 * this.fs && dh > 110) break;
-      }
-      const f = FOOD[key], sc = this.fs * (key === 'leaf' ? 2.4 : 1);
-      const food = { key, x: best[0], y: best[1], w: f.w * sc, h: f.h * sc, born: this.t + i * .07, rot: (r() - .5) * .3, ph: r() * TAU, eaten: -1, bites: key === 'leaf' ? 4 : 1, biteAt: 0, holes: [], sc };
-      placed.push(food); this.foods.push(food);
+      const f = FOOD[key], sc = scs[i];
+      const food = { key, x: best[0] + pts[i][0], y: best[1] + pts[i][1], w: f.w * sc, h: f.h * sc, born: this.t + i * .09, rot: (r() - .5) * (n > 1 ? .18 : .3), ph: r() * TAU, eaten: -1, bites: key === 'leaf' ? 4 : 1, biteAt: 0, holes: [], sc };
+      this.foods.push(food);
     });
   }
   // the big leaf goes in bites; each one leaves a scalloped hole
@@ -230,8 +246,9 @@ class Game {
     f.eaten = this.t; this.eaten++; this.n++; this.chomp = 1;
     const col = FOOD[f.key].col;
     for (let i = 0; i < 9; i++) { const a = this.rng() * TAU, v = 50 + this.rng() * 90; this.particles.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, r: 2 + this.rng() * 3, col, life: .55 + this.rng() * .3, age: 0, g: 260 }); }
-    if (this.pending && this.pending.length) this.spawnAt = this.t + .28;
-    const left = this.foods.filter(o => o.eaten < 0).length + (this.pending ? this.pending.length : 0);
+    const onBoard = this.foods.filter(o => o.eaten < 0).length;
+    if (!onBoard && this.pending && this.pending.length) this.spawnAt = this.t + .28;
+    const left = onBoard + (this.pending ? this.pending.reduce((a, g) => a + g.length, 0) : 0);
     this.hooks.onEat && this.hooks.onEat(f.key, left, this.dayI);
     if (left === 0) {
       if (this.dayI === 5) { this.queue = 2.2; this.ache = this.t; this.fatOn = this.t + 1.9; this.hooks.onAche && this.hooks.onAche(); }
@@ -283,7 +300,7 @@ class Game {
       const sh = this.shrink; if (sh && sh.t < 1) { sh.t = Math.min(1, sh.t + dt / 1.3); this.R = lerp(sh.R0, 13, ease.inOut(sh.t)); }
       else { const target = lerp(13 + 5 * this.eaten / CP.TOTAL_FOODS, 20, ease.inOut(this.fat)); this.R = lerp(this.R, target, 1 - Math.exp(-dt * 4)); }
       if (this.queue > 0) { this.queue -= dt; if (this.queue <= 0) this.nextDay(); }
-      if (this.spawnAt && t > this.spawnAt) { this.spawnAt = 0; this.spawn([this.pending.shift()]); this.hooks.onSpawn && this.hooks.onSpawn(); }
+      if (this.spawnAt && t > this.spawnAt) { this.spawnAt = 0; this.spawn(this.pending.shift()); this.hooks.onSpawn && this.hooks.onSpawn(); }
       if (this.timing) this.elapsed += dt;
       if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / 1.4);
       const aching = this.ache && t - this.ache < 2;

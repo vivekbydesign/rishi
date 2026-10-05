@@ -113,7 +113,7 @@ async function results() {
   const big = document.createElement('b'); big.textContent = fmt(secs) + 's';
   const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`) + (b ? ` · ${b} bump${b > 1 ? 's' : ''} (+${b * 2}s)` : ' · no bumps');
   t.append(big, msg); t.classList.add('show'); clearTimeout(state.toastT); state.toastT = setTimeout(() => t.classList.remove('show'), 5200);
-  $('playBtn').lastChild.nodeValue = 'Play again'; const ic = $('playBtn').querySelector('.btn-ic'); if (ic && ic.tagName === 'IMG') ic.outerHTML = '<svg class="btn-ic replay" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12a6.5 6.5 0 1 0 2-4.7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M4 3.8v5h5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  $('playBtn').classList.add('again'); $('playLabel').textContent = 'Replay';
   flyLater();
 }
 const cleanName = v => v.replace(/\s+/g, ' ').trim().slice(0, 20);
@@ -123,10 +123,10 @@ const RSVP_KEY = 'rishi1.rsvp';
 const rs = { go: 'yes', a: 1, k: 0 };
 const readRsvp = () => { try { return JSON.parse(localStorage.getItem(RSVP_KEY)); } catch (e) { return null; } };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-const rsvpSummary = r => r.go === 'yes' ? `You're coming · ${[plural(r.a, 'grown-up', 'grown-ups'), r.k ? plural(r.k, 'little one', 'little ones') : ''].filter(Boolean).join(', ')}` : `Sorry you'll miss it`;
+const rsvpSummary = r => r.go === 'yes' ? ['You’re coming!', [plural(r.a, 'grown-up', 'grown-ups'), r.k ? plural(r.k, 'little one', 'little ones') : ''].filter(Boolean).join(', ')] : ['Sorry you’ll miss it', 'Thanks for telling us'];
 const paintRsvp = pop => { const r = readRsvp(), d = $('rsvpDone');
   $('rsvpAsk').classList.toggle('hidden', !!r); d.classList.toggle('hidden', !r);
-  if (r) { $('rsvpSum').textContent = rsvpSummary(r); d.classList.toggle('no', r.go === 'no'); if (pop) { d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop'); } } };
+  if (r) { const [h, sub] = rsvpSummary(r); $('rsvpHead').textContent = h; $('rsvpSum').textContent = sub; d.classList.toggle('no', r.go === 'no'); if (pop) { d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop'); } } };
 const setGo = go => { rs.go = go; $('rsvpSheet').classList.toggle('no', go === 'no');
   document.querySelectorAll('#rsvpSheet .seg button').forEach(b => b.setAttribute('aria-checked', b.dataset.go === go));
   $('rsvpTitle').textContent = go === 'yes' ? 'Yay, see you there!' : "We'll miss you!";
