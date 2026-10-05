@@ -114,7 +114,7 @@ async function results() {
   const big = document.createElement('b'); big.textContent = fmt(secs) + 's';
   const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`) + (b || a ? ` · ${[b ? plural(b, 'bump', 'bumps') : '', a ? plural(a, 'tummy ache', 'tummy aches') : ''].filter(Boolean).join(', ')} (+${b * 3 + a * 5}s)` : ' · no bumps');
   t.append(big, msg); t.classList.add('show'); clearTimeout(state.toastT); state.toastT = setTimeout(() => t.classList.remove('show'), 5200);
-  $('playBtn').classList.add('again'); $('playLabel').textContent = 'Replay';
+  paintPlay();
   flyLater();
 }
 const cleanName = v => v.replace(/\s+/g, ' ').trim().slice(0, 20);
@@ -153,6 +153,8 @@ $('rsvpForm').onsubmit = e => { e.preventDefault(); const name = $('rsvpName').v
   if (r.go === 'yes') { fanfare(); if (navigator.vibrate) navigator.vibrate([12, 40, 12]); } else tone(523, 0, .4, 'sine', .06);
 };
 paintRsvp();
+function paintPlay() { const again = readScores().length > 0; $('playLabel').textContent = again ? 'Play again' : 'Play'; $('playBtn').setAttribute('aria-label', again ? 'Play the caterpillar game again' : 'Play the caterpillar game'); }
+paintPlay();
 
 /* wiring */
 $('playBtn').onclick = () => state.name ? startGame() : show('introSheet');
