@@ -245,3 +245,5 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 #rsvpSheet.no .yes-only,#rsvpSheet:not(.no) .no-only{display:none}
 #rsvpForm .err{min-height:0;margin:6px 2px 10px}
 #rsvpForm .err:empty{margin:0 0 14px}
+.sheet.tall .actions{flex-shrink:0}
+.sheet.tall .actions .btn.primary{flex:0 0 54px}

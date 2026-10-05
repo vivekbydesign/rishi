@@ -36,13 +36,18 @@ const saveScore = (name, t) => {
   let best = true;
   if (i >= 0) { if (list[i].t <= t) best = false; else list[i] = { name, t, at: Date.now() }; } else list.push({ name, t, at: Date.now() });
   list.sort((a, b) => a.t - b.t); localStorage.setItem(SCORE_KEY, JSON.stringify(list.slice(0, 50)));
-  if (window.SCORES_ENDPOINT) fetch(window.SCORES_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, t }) }).catch(() => {});
   return { best, rank: list.findIndex(s => s.name.toLowerCase() === name.toLowerCase()) + 1, total: list.length };
 };
-const loadRemote = async () => { if (!window.SCORES_ENDPOINT) return null; try { const r = await fetch(window.SCORES_ENDPOINT); return await r.json(); } catch (e) { return null; } };
+const API = (window.API || '').replace(/\/+$/, '');
+const post = (path, data) => API ? fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(data) }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null);
+const within = (p, ms) => Promise.race([p, new Promise(r => setTimeout(() => r(null), ms))]);
+// local copy answers instantly; the shared board (when API is set) is the source of truth
+const saveScoreAll = async (name, t) => { const local = saveScore(name, t); const remote = await within(post('/scores', { name, t }), 2500); return remote && remote.rank ? remote : local; };
+const loadRemote = async () => { if (!API) return null; try { const r = await within(fetch(API + '/scores', { cache: 'no-store' }), 4000); return r && r.ok ? await r.json() : null; } catch (e) { return null; } };
 const MEDAL = ['strawberry', 'orange', 'apple'];
-const renderBoard = async () => {
-  const list = (await loadRemote()) || readScores(), ol = $('board'); ol.textContent = '';
+const renderBoard = async () => { paintBoard(readScores()); const remote = await loadRemote(); if (remote && openSheet && openSheet.id === 'scoreSheet') paintBoard(remote); };
+const paintBoard = list => {
+  const ol = $('board'); ol.textContent = '';
   if (!list.length) { const li = document.createElement('li'); li.className = 'empty'; li.innerHTML = '<img src="assets/f_strawberry.png" alt=""><p></p>'; li.querySelector('p').textContent = 'No one has fed the caterpillar yet. Be the first!'; ol.appendChild(li); return; }
   list.slice(0, 30).forEach((s, i) => {
     const li = document.createElement('li'); if (state.name && s.name.toLowerCase() === state.name.toLowerCase()) li.className = 'me';
@@ -102,8 +107,8 @@ function goInvite() {
   show(null); $('goal').classList.remove('show'); if (game.mode === 'rest') flyLater(); card.classList.remove('playing', 'metamorph'); $('coach').classList.remove('show');
   if (game.mode === 'play' || game.mode === 'transform' || game.mode === 'hatch') game.buildHero(true);
 }
-function results() {
-  const secs = state.lastTime, b = state.lastBumps || 0, r = saveScore(state.name || 'Guest', secs);
+async function results() {
+  const secs = state.lastTime, b = state.lastBumps || 0, r = await saveScoreAll(state.name || 'Guest', secs);
   const t = $('toast'); t.textContent = '';
   const big = document.createElement('b'); big.textContent = fmt(secs) + 's';
   const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`) + (b ? ` · ${b} bump${b > 1 ? 's' : ''} (+${b * 2}s)` : ' · no bumps');
@@ -113,7 +118,7 @@ function results() {
 }
 const cleanName = v => v.replace(/\s+/g, ' ').trim().slice(0, 20);
 
-/* rsvp — saved on this phone; also POSTed to window.RSVP_ENDPOINT or texted to window.RSVP_SMS when set */
+/* rsvp — saved on this phone and sent to the party API (window.API) */
 const RSVP_KEY = 'rishi1.rsvp';
 const rs = { go: 'yes', a: 1, k: 0 };
 const readRsvp = () => { try { return JSON.parse(localStorage.getItem(RSVP_KEY)); } catch (e) { return null; } };
@@ -142,11 +147,10 @@ $('rsvpForm').onsubmit = e => { e.preventDefault(); const name = $('rsvpName').v
   if (!name) { $('rsvpErr').textContent = 'Add your name so Rishi knows who’s coming.'; $('rsvpName').classList.add('bad'); $('rsvpName').focus(); return; }
   const r = { id: (readRsvp() || {}).id || Math.random().toString(36).slice(2, 10), go: rs.go, name, a: rs.go === 'yes' ? rs.a : 0, k: rs.go === 'yes' ? rs.k : 0, note: rs.go === 'no' ? $('rsvpNote').value.trim().slice(0, 140) : '', at: Date.now() };
   localStorage.setItem(RSVP_KEY, JSON.stringify(r)); $('rsvpName').blur(); $('rsvpNote').blur();
-  if (window.RSVP_ENDPOINT) fetch(window.RSVP_ENDPOINT, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(r) }).catch(() => {});
+  post('/rsvp', r);
   show(null); paintRsvp(true);
   if (r.go === 'yes') { fanfare(); if (navigator.vibrate) navigator.vibrate([12, 40, 12]); } else tone(523, 0, .4, 'sine', .06);
-  if (window.RSVP_SMS) { const msg = r.go === 'yes' ? `RSVP for Rishi's 1st birthday: ${name} is coming (${rsvpSummary(r).replace("You're coming · ", '')}).` : `RSVP for Rishi's 1st birthday: ${name} can't make it.${r.note ? ' ' + r.note : ''}`;
-    setTimeout(() => { location.href = `sms:${window.RSVP_SMS}${/iPhone|iPad/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(msg)}`; }, 700); } };
+};
 paintRsvp();
 
 /* wiring */
@@ -157,7 +161,7 @@ $('nameForm').onsubmit = e => { e.preventDefault(); const v = cleanName($('nameI
   if (!v) { $('nameErr').textContent = 'Type a name so we can put you on the scoreboard.'; $('nameInput').classList.add('bad'); $('nameInput').focus(); return; }
   state.name = v; localStorage.setItem(NAME_KEY, v); $('nameErr').textContent = ''; $('nameInput').classList.remove('bad'); $('nameInput').blur(); startGame(); };
 $('nameInput').oninput = () => { $('nameInput').classList.remove('bad'); $('nameErr').textContent = ''; };
-$('resNameForm').onsubmit = e => { e.preventDefault(); const v = cleanName($('resName').value); if (!v) { $('resName').focus(); return; } state.name = v; localStorage.setItem(NAME_KEY, v); const r = saveScore(v, state.lastTime); $('resNameForm').classList.add('hidden'); $('resRank').textContent = `Saved! You're #${r.rank} of ${r.total}.`; };
+$('resNameForm').onsubmit = async e => { e.preventDefault(); const v = cleanName($('resName').value); if (!v) { $('resName').focus(); return; } state.name = v; localStorage.setItem(NAME_KEY, v); const r = await saveScoreAll(v, state.lastTime); $('resNameForm').classList.add('hidden'); $('resRank').textContent = `Saved! You're #${r.rank} of ${r.total}.`; };
 $('resInvite').onclick = () => { show(null); flyLater(); };
 $('resAgain').onclick = () => { game.buildHero(false); startGame(); };
 $('resScores').onclick = () => { renderBoard(); show('scoreSheet'); };
