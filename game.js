@@ -77,7 +77,7 @@ class Game {
   /* ---------- hero: inchworm crawl along the foot of the "1", passing behind it ---------- */
   buildHero(entrance = true) {
     this.layout();
-    const g = this.glyph, R = clamp(g.h * (CP.Rk || .115), 12, 26); this.R = R;
+    const g = this.glyph, R = clamp(g.h * (CP.Rk || .1), 12, 26); this.R = R;
     const n = CP.nSeg || 15, L = R * .9 + (n - 1) * R, base = g.y + g.h - R * .78, A = L - R * (3.05 + (CP.nb ?? 1.4)), restRatio = CP.restRatio || .42;
     // resting pose from the invite art: arch centred on the stem of the "1", tail and head on the ground either side
     const stemX = g.x + g.w * (CP.oneStem || .55), headX = stemX + restRatio * A / 2 + R * (CP.headOff ?? 1.9);
@@ -121,7 +121,29 @@ class Game {
     const out = [];
     for (let k = 0; k < this.n; k++) { const [px, py, ang] = at(L - (R * .9 + k * R)); out.push({ x: px, y: py, a: ang, r: R * (1 + .025 * Math.sin(this.t * 2.2 - k * .55)) * this.taper(k), k, ground: py > I.base - R * .45 }); }
     this.inchHead = [pts[N][0], pts[N][1]]; this.inchTilt = st.tilt;
+    const T = I.cycles * I.cyc;
+    if (I.t > T) {
+      // settle into the pose from the invite art: a round hump behind the stem, then down and up into a raised head
+      const k = ease.inOut(clamp((I.t - T) / 1.3, 0, 1)), P = this.restSegs();
+      out.forEach((o, i) => { const q = P.segs[i]; o.x = lerp(o.x, q.x, k); o.y = lerp(o.y, q.y, k); o.a = lerp(o.a, q.a, k); o.ground = k > .5 ? q.ground : o.ground; });
+      this.inchHead = [lerp(this.inchHead[0], P.head[0], k), lerp(this.inchHead[1], P.head[1], k)]; this.inchTilt = lerp(st.tilt, .04, k);
+    }
     return out;
+  }
+
+  restSegs() {
+    const g = this.glyph, h = g.h, R = this.R, cx = g.x + g.w * (CP.oneStem || .55), by = g.y + g.h, br = Math.sin(this.t * 1.3) * .006;
+    // centre line in glyph-height units, tail → head (x right, y up)
+    const C = [[-.42, .09], [-.36, .25], [-.24, .42 + br], [-.08, .5 + br], [.08, .48 + br], [.2, .36], [.28, .2], [.36, .12], [.44, .17], [.5, .28]].map(([x, y]) => [cx + x * h, by - y * h]);
+    const pts = []; for (let i = 0; i < C.length - 1; i++) { const p0 = C[Math.max(0, i - 1)], p1 = C[i], p2 = C[i + 1], p3 = C[Math.min(C.length - 1, i + 2)];
+      for (let j = 0; j < 12; j++) { const t = j / 12, t2 = t * t, t3 = t2 * t; pts.push([0, 1].map(d => .5 * (2 * p1[d] + (-p0[d] + p2[d]) * t + (2 * p0[d] - 5 * p1[d] + 4 * p2[d] - p3[d]) * t2 + (-p0[d] + 3 * p1[d] - 3 * p2[d] + p3[d]) * t3))); } }
+    pts.push(C[C.length - 1]);
+    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const Lp = cum[cum.length - 1], at = sv => { sv = clamp(sv, 0, Lp); let i = 0; while (i < cum.length - 2 && cum[i + 1] < sv) i++; const f = (sv - cum[i]) / ((cum[i + 1] - cum[i]) || 1), A = pts[i], B = pts[i + 1]; return [lerp(A[0], B[0], f), lerp(A[1], B[1], f), Math.atan2(B[1] - A[1], B[0] - A[0])]; };
+    // spread the segments evenly along the line so the body always fills it, head at the end
+    const gap = (Lp - R * .9) / (this.n - 1), segs = [];
+    for (let k = 0; k < this.n; k++) { const [x, y, a] = at(Lp - R * .9 - k * gap); segs.push({ x, y, a, ground: y > by - R * 1.25 && Math.abs(Math.cos(a)) > .6 }); }
+    return { segs, head: [C[C.length - 1][0], C[C.length - 1][1] - R * .15] };
   }
 
   /* ---------- play ---------- */
@@ -226,7 +248,7 @@ class Game {
     // a gentle pull toward food that is nearly in his path
     if (!this.auto) this.foods.forEach(f => { if (f.eaten >= 0 || this.t < f.born) return; const dx = f.x - head[0], dy = f.y - head[1], d = Math.hypot(dx, dy), da = angDiff(this.dir, Math.atan2(dy, dx)); if (d < 95 * this.fs && Math.abs(da) < .9) this.dir += clamp(da, -2.4 * dt, 2.4 * dt); });
     // with no tap to follow he turns away from the edges; steering into a wall still bumps
-    if (!want && !this.auto) { const look = this.R * 4 + 80 * this.fs, lx = head[0] + Math.cos(this.dir) * look, ly = head[1] + Math.sin(this.dir) * look;
+    if (false) { const look = this.R * 4 + 80 * this.fs, lx = head[0] + Math.cos(this.dir) * look, ly = head[1] + Math.sin(this.dir) * look;
       if (lx < 0 || lx > this.W || ly < this.top - 34 || ly > this.H - 34) { const c = Math.atan2(this.H * .5 - head[1], this.W / 2 - head[0]); this.dir += clamp(angDiff(this.dir, c), -5 * dt, 5 * dt); } }
     if (want) { const dx = want[0] - head[0], dy = want[1] - head[1]; if (Math.hypot(dx, dy) > this.R * .8) this.dir += clamp(angDiff(this.dir, Math.atan2(dy, dx)), -turn * dt, turn * dt); }
   }
@@ -323,7 +345,8 @@ class Game {
       const lift = R * ((play ? amp * .32 * Math.pow(Math.max(0, -w), 2) : amp * .9 * Math.max(0, w)) + .03 * w2 + wig * .12 * Math.max(0, Math.sin(this.t * 14 - k)));
       const frac = k === N - 1 ? clamp(this.nShow - k, .15, 1) : 1;
       const r = R * (1 + .03 * w2 + amp * .25 * w) * frac * this.taper(k, N);
-      out.push({ x: p[0], y: p[1] - lift, a, r, k, w });
+      const wp = play ? this.wrapPt(p[0], p[1]) : p;
+      out.push({ x: wp[0], y: wp[1] - lift, a, r, k, w });
     }
     return out;
   }
@@ -366,17 +389,15 @@ class Game {
     }
   }
   // bumping the edge turns him back and costs 2 seconds
+  // the field wraps: out one side, back in the other (the whole trail shifts, segments wrap one by one when drawn)
+  field() { const p = this.R * 1.6; return { x0: -p, y0: this.top - 30 - p, w: this.W + p * 2, h: this.H - 40 - this.top + 30 + p * 2 }; }
+  wrapPt(x, y) { const f = this.field(); return [f.x0 + (((x - f.x0) % f.w) + f.w) % f.w, f.y0 + (((y - f.y0) % f.h) + f.h) % f.h]; }
   checkWall(h) {
-    const m = this.R * .5, x0 = m, x1 = this.W - m, y0 = this.top - 34, y1 = this.H - 34;
-    if (h[0] > x0 && h[0] < x1 && h[1] > y0 && h[1] < y1) return;
-    let cx = Math.cos(this.dir), cy = Math.sin(this.dir);
-    if ((h[0] <= x0 && cx < 0) || (h[0] >= x1 && cx > 0)) cx = -cx;
-    if ((h[1] <= y0 && cy < 0) || (h[1] >= y1 && cy > 0)) cy = -cy;
-    this.dir = Math.atan2(cy, cx); this.target = null;
-    if (!this.timing || this.t < this.safeUntil) return;
-    this.bumps++; this.penalty += 2; this.safeUntil = this.t + 1.2; this.wig = 1;
-    this.particles.push({ x: clamp(h[0], 30, this.W - 30), y: clamp(h[1] + (cy > 0 ? 30 : -30), this.top, this.H - 90), vx: 0, vy: -40, r: 0, txt: '+2s', life: 1.1, age: 0, g: 0, drag: .4 });
-    this.hooks.onBump && this.hooks.onBump(this.bumps, 'wall');
+    const f = this.field(); let dx = 0, dy = 0;
+    if (h[0] < f.x0) dx = f.w; else if (h[0] > f.x0 + f.w) dx = -f.w;
+    if (h[1] < f.y0) dy = f.h; else if (h[1] > f.y0 + f.h) dy = -f.h;
+    if (!dx && !dy) return;
+    this.trail.forEach(p => { p[0] += dx; p[1] += dy; }); this.target = null;
   }
   flyAway() {
     if (this.mode !== 'rest') return;

@@ -72,8 +72,8 @@ const BW = ['One apple', 'Two pears', 'Three plums', 'Four strawberries', 'Five 
 
 let game;
 const hooks = {
-  onDay(i, d) { $('dayName').textContent = d.day; [...$('week').children].forEach((li, k) => { li.classList.toggle('done', k < i); li.classList.toggle('now', k === i); }); hudFoods(d); banner('On ' + d.day, BW[i], d.tex); chime(); },
-  onEat(key, left) { munch(); if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.gone)')].find(x => x.dataset.k === key); if (im) im.classList.add('gone'); },
+  onDay(i, d) { $('dayName').textContent = d.day; hudFoods(d); banner('On ' + d.day, BW[i], d.tex); chime(); },
+  onEat(key, left) { munch(); if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { tone(180, 0, .18, 'square', .05); if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
   onSpawn() { tone(1046, 0, .12, 'sine', .05); },
@@ -81,7 +81,7 @@ const hooks = {
   onHatch() { tone(880, 0, .12, 'square', .05); tone(1320, .05, .25, 'sine', .07); if (navigator.vibrate) navigator.vibrate(18); banner('Pop!', 'out came a tiny caterpillar', 'apple'); },
   onBite() { munch(); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); tone(220, 0, .4, 'sine', .08); tone(196, .25, .5, 'sine', .08); },
-  onFinish(secs, bumps) { [...$('week').children].forEach(li => { li.classList.remove('now'); li.classList.add('done'); }); state.lastTime = secs; state.lastBumps = bumps; banner('Much better', 'Now he is big and fat', 'leaf', true); },
+  onFinish(secs, bumps) { state.lastTime = secs; state.lastBumps = bumps; banner('Much better!', 'And now for a surprise…', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },
   onEmerge() { fanfare(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
@@ -92,10 +92,9 @@ const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nod
 
 function startGame() {
   show(null); $('toast').classList.remove('show'); audio(); card.classList.add('playing');
-  [...$('week').children].forEach(li => li.classList.remove('done', 'now')); clearTimeout(state.goalT); $('goal').classList.add('show'); state.goalT = setTimeout(() => $('goal').classList.remove('show'), 4300);
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
   game.startPlay();
-  setTimeout(() => { if (game.mode === 'play' && !game.input.down) $('coach').classList.add('show'); }, 4700);
+  setTimeout(() => { if (game.mode === 'play' && !game.input.down) $('coach').classList.add('show'); }, 3300);
   setTimeout(() => $('coach').classList.remove('show'), 9000);
 }
 const flyLater = () => { clearTimeout(state.flyT); state.flyT = setTimeout(() => { if (game.mode === 'rest') game.flyAway(); }, 1700); };

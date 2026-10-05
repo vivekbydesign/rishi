@@ -37,11 +37,11 @@ a{color:inherit}
 
 /* ---------- decorations ---------- */
 .deco{position:absolute;inset:0;pointer-events:none;transition:opacity .7s var(--ease-out),filter .7s var(--ease-out)}
-.sun{transition:width .9s var(--ease-out);position:absolute;left:2cqw;top:calc(1cqh + var(--safe-t));width:17cqw;transform-origin:50% 50%;animation:sunspin 60s linear infinite}
+.sun{transition:width .9s var(--ease-out);position:absolute;left:2cqw;top:calc(1cqh + var(--safe-t));width:21cqw;transform-origin:50% 50%;animation:sunspin 60s linear infinite}
 @keyframes sunspin{to{transform:rotate(360deg)}}
-.branch{transition:width .9s var(--ease-out);position:absolute;right:-2cqw;top:calc(.2cqh + var(--safe-t));width:23cqw;transform-origin:95% 10%;animation:sway 6s ease-in-out infinite}
-.playing .sun,.metamorph .sun{width:22cqw}
-.playing .branch,.metamorph .branch{width:30cqw}
+.branch{transition:width .9s var(--ease-out);position:absolute;right:-2cqw;top:calc(.2cqh + var(--safe-t));width:29cqw;transform-origin:95% 10%;animation:sway 6s ease-in-out infinite}
+.playing .sun,.metamorph .sun{width:28cqw}
+.playing .branch,.metamorph .branch{width:38cqw}
 .playing .playing .playing @keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(-3deg)}}
 .dots i{position:absolute;border-radius:50%;background-size:120px;box-shadow:0 1px 1.5px rgba(0,0,0,.12)}
 
@@ -105,12 +105,9 @@ a{color:inherit}
 .dayname{font-family:var(--hand);font-size:20px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
 .dayfood{display:flex;align-items:center;gap:1px}
 .dayfood img{height:22px;width:auto;transition:opacity .35s,transform .45s var(--ease-spring),filter .35s}
-.dayfood img.gone{opacity:.28;transform:scale(.72);filter:grayscale(1)}
-.week{grid-column:1/-1;grid-row:2;justify-self:center;display:flex;gap:6px;margin:6px 0 0;padding:0;list-style:none}
-.week li{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--hand);font-size:13px;line-height:1;color:var(--muted);background:#fff;box-shadow:0 0 0 1.5px rgba(30,30,30,.22) inset;transition:background .4s,color .4s,box-shadow .4s,transform .5s var(--ease-spring)}
-.week li.now{color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset;transform:scale(1.12)}
-.week li.done{color:#fff;background:var(--green);box-shadow:none}
-.week li.wk-sun.now{box-shadow:0 0 0 2px var(--red) inset}
+.dayfood img{opacity:.38;filter:grayscale(1) contrast(.9);transform:scale(.86)}
+.dayfood img.got{opacity:1;filter:none;transform:none;animation:gotPop .5s var(--ease-spring)}
+@keyframes gotPop{0%{transform:scale(.86)}45%{transform:scale(1.35)}100%{transform:none}}
 .timer{font-family:var(--round);font-weight:600;font-size:17px;font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
 .timer small{font-size:12px;margin-left:1px;color:var(--muted)}
 
