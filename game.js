@@ -6,8 +6,8 @@ const PI = Math.PI;
 
 const DAYS = CP.DAYS = [
   { day: 'Monday', what: 'he ate through one apple.', foods: ['apple'], tex: 'apple' },
-  { day: 'Tuesday', what: 'he ate through two pears.', foods: ['pear', 'pear'], tex: 'pear' },
-  { day: 'Wednesday', what: 'he ate through three plums.', foods: ['plum', 'plum', 'plum'], tex: 'plum' },
+  { day: 'Tuesday', what: 'he ate through two pears.', foods: ['pear', 'pear'], tex: 'pear', together: true },
+  { day: 'Wednesday', what: 'he ate through three plums.', foods: ['plum', 'plum', 'plum'], tex: 'plum', together: true },
   { day: 'Thursday', what: 'he ate through four strawberries.', foods: Array(4).fill('strawberry'), tex: 'strawberry' },
   { day: 'Friday', what: 'he ate through five oranges.', foods: Array(5).fill('orange'), tex: 'orange' },
   { day: 'Saturday', what: 'he ate through one piece of chocolate cake, one ice-cream cone, one pickle, one slice of Swiss cheese, one slice of salami, one lollipop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon.', short: 'cake, ice cream, pickle, cheese, salami, lollipop, cherry pie, sausage, cupcake & watermelon', foods: ['cake', 'icecream', 'pickle', 'cheese', 'salami', 'lollipop', 'pie', 'sausage', 'cupcake', 'watermelon'], tex: 'pink' },
@@ -189,7 +189,7 @@ class Game {
   nextDay() {
     this.dayI++;
     const d = DAYS[this.dayI]; if (!d) return;
-    this.pending = d.foods.slice(); this.spawn([this.pending.shift()]);
+    this.pending = d.foods.slice(); this.spawn(d.together ? this.pending.splice(0) : [this.pending.shift()]);
     if (this.dayI === 0) { this.timing = true; this.elapsed = 0; }
     this.hooks.onDay && this.hooks.onDay(this.dayI, d);
   }
