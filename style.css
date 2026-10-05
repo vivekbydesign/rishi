@@ -262,8 +262,7 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 @media (max-width:374px){.half img{display:none}}
 .btn-ic{width:26px;height:26px;flex:none;margin-left:-4px}
 #cv{transition:opacity .5s var(--ease-out)}
-.intro-open #invite,.intro-open #cv{opacity:0;pointer-events:none}
-.intro-open .scrim{opacity:0}
+.intro-open #cv{opacity:0;pointer-events:none}
 #scoreSheet{top:25%}
 .sheet.dragging{transition:none}
 .hud .timer{display:flex;align-items:center;justify-content:center;height:44px;padding:0 14px;border-radius:22px;background:#fff;box-shadow:0 0 0 2px var(--ink) inset;min-width:68px}
@@ -280,3 +279,4 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .rsvp-done .rd-h{color:var(--green)}
 .rsvp-done.no .rd-h{color:var(--red)}
 .rd-edit{flex:none;width:20px;height:20px;color:var(--ink);opacity:.7}
+#introSheet{top:25%;display:flex;flex-direction:column;justify-content:center}
