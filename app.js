@@ -169,6 +169,14 @@ $('resInvite').onclick = () => { show(null); flyLater(); };
 $('resAgain').onclick = () => { game.buildHero(false); startGame(); };
 $('resScores').onclick = () => { renderBoard(); show('scoreSheet'); };
 $('scClose').onclick = $('scBack').onclick = () => goInvite();
+// swipe a sheet down to close it
+['scoreSheet', 'rsvpSheet'].forEach(id => {
+  const sh = $(id); let y0 = null, dy = 0, t0 = 0;
+  sh.addEventListener('touchstart', e => { const sc = e.target.closest('.board'); if (sc && sc.scrollTop > 0) return; y0 = e.touches[0].clientY; dy = 0; t0 = performance.now(); }, { passive: true });
+  sh.addEventListener('touchmove', e => { if (y0 === null) return; dy = Math.max(0, e.touches[0].clientY - y0); if (dy > 4) { sh.classList.add('dragging'); sh.style.transform = `translateY(${dy}px)`; if (e.cancelable) e.preventDefault(); } }, { passive: false });
+  sh.addEventListener('touchend', () => { if (y0 === null) return; const v = dy / Math.max(1, performance.now() - t0); y0 = null; sh.classList.remove('dragging'); sh.style.transform = '';
+    if (dy > 110 || (dy > 40 && v > .5)) goInvite(); });
+});
 $('scPlay').onclick = () => state.name ? startGame() : show('introSheet');
 $('quitBtn').onclick = () => goInvite();
 $('nameInput').value = state.name;

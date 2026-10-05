@@ -270,3 +270,5 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 #introSheet form,#introSheet .lede,#introSheet .intro-cat{width:100%;max-width:360px;margin-left:auto;margin-right:auto}
 #introSheet #skipBtn{align-self:center}
 .intro-open .scrim{opacity:0}
+#scoreSheet{top:25%}
+.sheet.dragging{transition:none}
