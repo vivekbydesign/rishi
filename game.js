@@ -228,17 +228,6 @@ class Game {
       const food = { key, x: best[0] + pts[i][0], y: best[1] + pts[i][1], w: f.w * sc, h: f.h * sc, born: this.t + i * .09, rot: (r() - .5) * (n > 1 ? .18 : .3), ph: r() * TAU, eaten: -1, bites: key === 'leaf' ? 4 : 1, biteAt: 0, holes: [], sc };
       this.foods.push(food);
     });
-    // Tue–Fri: a wrong fruit tucked beside the bundle; eating it gives a tummy ache
-    if (this.dayI >= 1 && this.dayI <= 4) {
-      const pool = ['apple', 'pear', 'plum', 'strawberry', 'orange'].filter(k => k !== DAYS[this.dayI].foods[0]);
-      const nd = this.dayI >= 3 && r() < .5 ? 2 : 1, side = r() < .5 ? 1 : -1;
-      for (let j = 0; j < nd; j++) {
-        const key = pool[Math.floor(r() * pool.length)], F = FOOD[key], sg = j ? -side : side;
-        const along = (r() - .5) * offs[n - 1], d = (82 + r() * 14) * this.fs, mx = F.w * this.fs / 2 + 6;
-        const x = clamp(best[0] + along * ca - sa * d * sg, mx, this.W - mx), y = clamp(best[1] + along * sa + ca * d * sg, top, bot);
-        this.foods.push({ key, decoy: true, x, y, w: F.w * this.fs, h: F.h * this.fs, born: this.t + n * .09 + .15 + j * .1, rot: (r() - .5) * .3, ph: r() * TAU, eaten: -1, bites: 1, biteAt: 0, holes: [], sc: this.fs });
-      }
-    }
   }
   // the big leaf goes in bites; each one leaves a scalloped hole
   bite(f, h) {
