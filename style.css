@@ -139,9 +139,9 @@ a{color:inherit}
 .sheet.tall{top:calc(var(--safe-t) + 7cqh);display:flex;flex-direction:column}
 .grip{width:40px;height:5px;border-radius:3px;background:#e2ded5;margin:0 auto 14px}
 .sheet h2{font-family:var(--round);font-weight:700;font-size:28px;line-height:1.1;letter-spacing:-.01em;margin:4px 0 6px;text-wrap:balance}
-.intro-cat{display:block;width:min(100%,300px);height:96px;margin:6px auto 2px}
+.intro-cat{display:block;width:min(100%,300px);height:104px;margin:4px auto 2px}
 #introSheet h2,#introSheet .lede{text-align:center}
-#introSheet .lede{font-size:20px;line-height:1.4;margin:0 auto 18px;max-width:26ch;text-wrap:balance}
+#introSheet .lede{font-size:16px;line-height:1.45;margin:0 auto 16px;max-width:30ch;text-wrap:balance}
 .rules{font-family:var(--hand);font-size:17px;line-height:1.35;letter-spacing:.03em;color:var(--muted);text-align:center;margin:-8px auto 16px;max-width:30ch;text-wrap:balance}
 #introSheet h2 em{font-style:normal;color:var(--red)}
 .lede{font-family:var(--serif);font-size:17px;line-height:1.45;color:#3b3a33;margin:0 0 18px;text-wrap:pretty}

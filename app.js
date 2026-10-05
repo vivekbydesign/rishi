@@ -186,7 +186,7 @@ function fitOne() {
 function introCat() {
   const cv = $('introCat'), dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth || 300, H = cv.clientHeight || 96;
   cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d');
-  const r = 14, n = 7, gap = r * 1.45, fake = { R: r * 1.32, mode: 'card', phase: 0, face: 1, chomp: 0, wig: 0, hdir: 0, faceT: 1, t: 0, blink: 0, near: 0, at: () => [0, 0] };
+  const r = 17, n = 7, gap = r * 1.38, fake = { R: r * 1.1, mode: 'card', phase: 0, face: 1, chomp: 0, wig: 0, hdir: 0, faceT: 1, t: 0, blink: 0, near: 0, at: () => [0, 0] };
   const frame = now => {
     if (!openSheet || openSheet.id !== 'introSheet') return;
     const t = now / 1000; fake.t = t; fake.phase = t * 5; fake.blink = (t % 3.4) < .12 ? 1 : 0;
