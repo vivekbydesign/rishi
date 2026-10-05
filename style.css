@@ -263,12 +263,6 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .btn-ic{width:26px;height:26px;flex:none;margin-left:-4px}
 #cv{transition:opacity .5s var(--ease-out)}
 .intro-open #invite,.intro-open #cv{opacity:0;pointer-events:none}
-/* welcome: full screen over the sun and branch, no sheet */
-#introSheet{top:0;background:transparent;border-radius:0;box-shadow:none;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--safe-t) + 18cqh) 28px calc(var(--safe-b) + 24px);transform:none;opacity:0;transition:opacity .5s var(--ease-out),visibility 0s .5s}
-#introSheet.open{opacity:1;transition:opacity .6s var(--ease-out)}
-#introSheet .grip{display:none}
-#introSheet form,#introSheet .lede,#introSheet .intro-cat{width:100%;max-width:360px;margin-left:auto;margin-right:auto}
-#introSheet #skipBtn{align-self:center}
 .intro-open .scrim{opacity:0}
 #scoreSheet{top:25%}
 .sheet.dragging{transition:none}

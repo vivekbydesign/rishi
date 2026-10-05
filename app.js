@@ -109,10 +109,10 @@ function goInvite() {
   if (game.mode === 'play' || game.mode === 'transform' || game.mode === 'hatch') game.buildHero(true);
 }
 async function results() {
-  const secs = state.lastTime, b = state.lastBumps || 0, a = state.lastAches || 0, r = await saveScoreAll(state.name || 'Guest', secs);
+  const secs = state.lastTime, r = await saveScoreAll(state.name || 'Guest', secs);
   const t = $('toast'); t.textContent = '';
   const big = document.createElement('b'); big.textContent = fmt(secs) + 's';
-  const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`) + (b || a ? ` · ${[b ? plural(b, 'bump', 'bumps') : '', a ? plural(a, 'tummy ache', 'tummy aches') : ''].filter(Boolean).join(', ')} (+${b * 3 + a * 5}s)` : ' · no bumps');
+  const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`);
   t.append(big, msg); t.classList.add('show'); clearTimeout(state.toastT); state.toastT = setTimeout(() => t.classList.remove('show'), 5200);
   paintPlay();
   flyLater();
