@@ -55,7 +55,7 @@ const renderBoard = async () => {
 
 /* sheets */
 let openSheet = null;
-const show = id => { if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); } else card.classList.remove('sheet-open'); };
+const show = id => { if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
 if (fine) document.querySelector('.coach-t').textContent = 'Steer with the arrow keys (or click and hold)';
@@ -142,6 +142,25 @@ function fitOne() {
   if (a >= 0) CP.oneStem = (a + b) / 2 / c.width;
 }
 
+/* welcome caterpillar, same cut-paper art as the game */
+function introCat() {
+  const cv = $('introCat'), dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth || 300, H = cv.clientHeight || 96;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d');
+  const r = 14, n = 7, gap = r * 1.45, fake = { R: r * 1.32, mode: 'card', phase: 0, face: 1, chomp: 0, wig: 0, hdir: 0, faceT: 1, t: 0, blink: 0, near: 0, at: () => [0, 0] };
+  const frame = now => {
+    if (!openSheet || openSheet.id !== 'introSheet') return;
+    const t = now / 1000; fake.t = t; fake.phase = t * 5; fake.blink = (t % 3.4) < .12 ? 1 : 0;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    const total = gap * n + fake.R * 1.6, x0 = (W - total) / 2 + r, base = H * .6, segs = [];
+    for (let i = 0; i < n; i++) { const x = x0 + (n - 1 - i) * gap, k = (n - 1 - i) / n, y = base - Math.max(0, Math.sin(k * Math.PI * 1.6 - t * 3.2)) * r * .9;
+      segs.push({ x, y, r, a: 0, ground: y > base - r * .3 }); }
+    const hx = x0 + n * gap - gap * .2 + fake.R * .35, hy = base - fake.R * .45 + Math.sin(t * 2.2) * 1.5;
+    try { CP.Game.prototype.drawCaterpillar.call(fake, g, segs, 1, [hx, hy]); } catch (e) { console.error(e); return; }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
 /* boot */
 (async () => {
   if (/[?&]reset=1/.test(location.search)) { [NAME_KEY, SCORE_KEY, 'rishi1.scores', 'rishi1.muted'].forEach(k => localStorage.removeItem(k)); history.replaceState(null, '', location.pathname); location.reload(); return; }
@@ -159,6 +178,6 @@ function fitOne() {
   if (/[?&]auto=1/.test(q)) { state.name = state.name || 'Robo'; setTimeout(startGame, 500); return; }
   if (/[?&]state=scores/.test(q)) { renderBoard(); show('scoreSheet'); return; }
   if (/[?&]state=rest/.test(q)) { game.setRest(); flyLater(); return; }
-  setTimeout(() => { if (!openSheet && game.mode === 'hero') show(state.name ? null : 'introSheet'); }, 1700);
+  setTimeout(() => { if (!openSheet && game.mode === 'hero') show('introSheet'); }, 900);
 })();
 })();

@@ -65,7 +65,7 @@
     </header>
 
     <div class="banner" id="banner" aria-live="polite"><span class="b-day" id="bDay"></span><span class="b-what" id="bWhat"></span></div>
-    <p class="goal" id="goal"><span>Feed him all week to reveal</span> <b>Rishi’s invite</b></p>
+    <p class="goal" id="goal"><span>Eat all the food to get</span> <b>Rishi’s invite</b></p>
     <div class="coach" id="coach"><span class="ring"></span><span class="coach-t">Touch where you want him to crawl</span></div>
 
     <div class="toast" id="toast" role="status"></div>
@@ -73,13 +73,14 @@
 
     <section class="sheet" id="introSheet" role="dialog" aria-labelledby="introTitle">
       <div class="grip"></div>
-      <h2 id="introTitle">Hello, hungry friend!</h2>
-      <p class="lede">Rishi's caterpillar is <em>very</em> hungry. Every food is 100 points. Finish fast for a bonus, but don't bump into yourself (−50). Then watch him become a butterfly.</p>
+      <canvas class="intro-cat" id="introCat" aria-hidden="true"></canvas>
+      <h2 id="introTitle">Rishi is a <em>very</em> hungry caterpillar</h2>
+      <p class="lede">Eat all the food to get invited to his birthday!</p>
       <form id="nameForm" novalidate>
-        <label for="nameInput">Your name <span class="hint">for the scoreboard</span></label>
+        <label for="nameInput">Your name</label>
         <input id="nameInput" name="name" autocomplete="given-name" maxlength="20" placeholder="e.g. Auntie Priya" enterkeyhint="go">
         <p class="err" id="nameErr" role="alert"></p>
-        <button class="btn primary wide" type="submit">Ready? Let's play</button>
+        <button class="btn primary wide" type="submit">Let's play</button>
       </form>
       <button class="btn link" id="skipBtn">Skip to the invite</button>
     </section>
