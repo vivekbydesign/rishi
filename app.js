@@ -113,6 +113,42 @@ function results() {
 }
 const cleanName = v => v.replace(/\s+/g, ' ').trim().slice(0, 20);
 
+/* rsvp — saved on this phone; also POSTed to window.RSVP_ENDPOINT or texted to window.RSVP_SMS when set */
+const RSVP_KEY = 'rishi1.rsvp';
+const rs = { go: 'yes', a: 1, k: 0 };
+const readRsvp = () => { try { return JSON.parse(localStorage.getItem(RSVP_KEY)); } catch (e) { return null; } };
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const rsvpSummary = r => r.go === 'yes' ? `You're coming · ${[plural(r.a, 'grown-up', 'grown-ups'), r.k ? plural(r.k, 'little one', 'little ones') : ''].filter(Boolean).join(', ')}` : `Sorry you'll miss it`;
+const paintRsvp = pop => { const r = readRsvp(), d = $('rsvpDone');
+  $('rsvpAsk').classList.toggle('hidden', !!r); d.classList.toggle('hidden', !r);
+  if (r) { $('rsvpSum').textContent = rsvpSummary(r); d.classList.toggle('no', r.go === 'no'); if (pop) { d.classList.remove('pop'); void d.offsetWidth; d.classList.add('pop'); } } };
+const setGo = go => { rs.go = go; $('rsvpSheet').classList.toggle('no', go === 'no');
+  document.querySelectorAll('#rsvpSheet .seg button').forEach(b => b.setAttribute('aria-checked', b.dataset.go === go));
+  $('rsvpTitle').textContent = go === 'yes' ? 'Yay, see you there!' : "We'll miss you!";
+  $('rsvpSub').textContent = go === 'yes' ? 'Sunday, Nov 22 at 3 PM · 2459 NE Daphne St' : "Thanks for letting us know.";
+  $('rsvpSend').textContent = go === 'yes' ? 'Send RSVP' : 'Send'; };
+const paintCount = () => { $('cA').textContent = rs.a; $('cK').textContent = rs.k;
+  document.querySelectorAll('.st-b').forEach(b => { const v = rs[b.dataset.k], d = +b.dataset.d; b.disabled = d < 0 ? v <= (b.dataset.k === 'a' ? 1 : 0) : v >= 10; }); };
+const openRsvp = go => { const r = readRsvp();
+  if (r) { rs.a = r.a || 1; rs.k = r.k || 0; $('rsvpNote').value = r.note || ''; }
+  $('rsvpName').value = (r && r.name) || state.name || ''; $('rsvpErr').textContent = ''; $('rsvpName').classList.remove('bad');
+  setGo(go || (r && r.go) || 'yes'); paintCount(); show('rsvpSheet'); };
+document.querySelectorAll('[data-rsvp]').forEach(b => b.onclick = () => openRsvp(b.dataset.rsvp));
+$('rsvpChange').onclick = () => openRsvp();
+document.querySelectorAll('#rsvpSheet .seg button').forEach(b => b.onclick = () => setGo(b.dataset.go));
+document.querySelectorAll('.st-b').forEach(b => b.onclick = () => { const k = b.dataset.k; rs[k] = Math.min(10, Math.max(k === 'a' ? 1 : 0, rs[k] + +b.dataset.d)); paintCount(); tone(rs[k] > 0 ? 660 + rs[k] * 40 : 440, 0, .12, 'sine', .05); });
+$('rsvpName').oninput = () => { $('rsvpName').classList.remove('bad'); $('rsvpErr').textContent = ''; };
+$('rsvpForm').onsubmit = e => { e.preventDefault(); const name = $('rsvpName').value.replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (!name) { $('rsvpErr').textContent = 'Add your name so Rishi knows who’s coming.'; $('rsvpName').classList.add('bad'); $('rsvpName').focus(); return; }
+  const r = { id: (readRsvp() || {}).id || Math.random().toString(36).slice(2, 10), go: rs.go, name, a: rs.go === 'yes' ? rs.a : 0, k: rs.go === 'yes' ? rs.k : 0, note: rs.go === 'no' ? $('rsvpNote').value.trim().slice(0, 140) : '', at: Date.now() };
+  localStorage.setItem(RSVP_KEY, JSON.stringify(r)); $('rsvpName').blur(); $('rsvpNote').blur();
+  if (window.RSVP_ENDPOINT) fetch(window.RSVP_ENDPOINT, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(r) }).catch(() => {});
+  show(null); paintRsvp(true);
+  if (r.go === 'yes') { fanfare(); if (navigator.vibrate) navigator.vibrate([12, 40, 12]); } else tone(523, 0, .4, 'sine', .06);
+  if (window.RSVP_SMS) { const msg = r.go === 'yes' ? `RSVP for Rishi's 1st birthday: ${name} is coming (${rsvpSummary(r).replace("You're coming · ", '')}).` : `RSVP for Rishi's 1st birthday: ${name} can't make it.${r.note ? ' ' + r.note : ''}`;
+    setTimeout(() => { location.href = `sms:${window.RSVP_SMS}${/iPhone|iPad/.test(navigator.userAgent) ? '&' : '?'}body=${encodeURIComponent(msg)}`; }, 700); } };
+paintRsvp();
+
 /* wiring */
 $('playBtn').onclick = () => state.name ? startGame() : show('introSheet');
 $('scoresBtn').onclick = () => { renderBoard(); show('scoreSheet'); };
@@ -163,7 +199,7 @@ function introCat() {
 
 /* boot */
 (async () => {
-  if (/[?&]reset=1/.test(location.search)) { [NAME_KEY, SCORE_KEY, 'rishi1.points', 'rishi1.scores', 'rishi1.muted'].forEach(k => localStorage.removeItem(k)); history.replaceState(null, '', location.pathname); location.reload(); return; }
+  if (/[?&]reset=1/.test(location.search)) { [NAME_KEY, SCORE_KEY, 'rishi1.points', 'rishi1.scores', 'rishi1.muted', 'rishi1.rsvp'].forEach(k => localStorage.removeItem(k)); history.replaceState(null, '', location.pathname); location.reload(); return; }
   try { await Promise.all([CP.loadAll(), document.fonts ? document.fonts.load('700 100px Arvo').then(() => document.fonts.ready) : 0]); }
   catch (e) { console.error(e); }
   CP.buildSegments(); CP.buildFoods(); CP.buildCocoon(); CP.buildEgg();

@@ -42,6 +42,13 @@
         </div>
         <div class="col time"><span class="k">At</span><span class="big">3</span><span class="k">PM</span></div>
       </div>
+      <div class="rsvp" id="rsvp">
+        <div class="rsvp-ask" id="rsvpAsk">
+          <p class="rsvp-q">Can you come?</p>
+          <div class="rsvp-btns"><button class="pill yes" data-rsvp="yes"><img src="assets/f_strawberry.png" alt="">I'll be there</button><button class="pill" data-rsvp="no">Can't make it</button></div>
+        </div>
+        <p class="rsvp-done hidden" id="rsvpDone"><span class="tick" aria-hidden="true"></span><span id="rsvpSum"></span><button class="rsvp-change" id="rsvpChange">Change</button></p>
+      </div>
     </section>
 
     <canvas id="cv" aria-label="Caterpillar game board"></canvas>
@@ -84,6 +91,27 @@
       <button class="btn link" id="skipBtn">Skip to the invite</button>
     </section>
 
+    <section class="sheet" id="rsvpSheet" role="dialog" aria-labelledby="rsvpTitle">
+      <div class="grip"></div>
+      <div class="seg" role="radiogroup" aria-label="Are you coming?">
+        <button type="button" role="radio" data-go="yes">I'll be there</button>
+        <button type="button" role="radio" data-go="no">Can't make it</button>
+      </div>
+      <h2 id="rsvpTitle">Yay, see you there!</h2>
+      <p class="lede rs-sub" id="rsvpSub">Sunday, Nov 22 at 3 PM</p>
+      <form id="rsvpForm" novalidate>
+        <label for="rsvpName">Your name</label>
+        <input id="rsvpName" maxlength="40" placeholder="e.g. The Sharma family" autocomplete="name">
+        <p class="err" id="rsvpErr" role="alert"></p>
+        <div class="count yes-only">
+          <div class="step"><span class="st-l">Grown-ups</span><button type="button" class="st-b" data-k="a" data-d="-1" aria-label="Fewer grown-ups">−</button><output id="cA">1</output><button type="button" class="st-b" data-k="a" data-d="1" aria-label="More grown-ups">+</button></div>
+          <div class="step"><span class="st-l">Little ones</span><button type="button" class="st-b" data-k="k" data-d="-1" aria-label="Fewer little ones">−</button><output id="cK">0</output><button type="button" class="st-b" data-k="k" data-d="1" aria-label="More little ones">+</button></div>
+        </div>
+        <div class="no-only"><label for="rsvpNote">A note for Rishi <span class="hint">optional</span></label><input id="rsvpNote" maxlength="140" placeholder="Happy first birthday!"></div>
+        <button class="btn primary wide" type="submit" id="rsvpSend">Send RSVP</button>
+      </form>
+    </section>
+
     <section class="sheet" id="resultSheet" role="dialog" aria-labelledby="resTitle">
       <div class="grip"></div>
       <h2 id="resTitle">What a beautiful butterfly!</h2>
@@ -111,6 +139,7 @@
     </section>
   </div>
 </main>
+<script src="config.js"></script>
 <script src="art.js"></script>
 <script src="game.js"></script>
 <script src="app.js"></script>
