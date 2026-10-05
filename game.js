@@ -10,7 +10,7 @@ const DAYS = CP.DAYS = [
   { day: 'Wednesday', what: 'he ate through three plums.', foods: ['plum', 'plum', 'plum'], tex: 'plum', bundle: true },
   { day: 'Thursday', what: 'he ate through four strawberries.', foods: Array(4).fill('strawberry'), tex: 'strawberry', bundle: true },
   { day: 'Friday', what: 'he ate through five oranges.', foods: Array(5).fill('orange'), tex: 'orange', bundle: true },
-  { day: 'Saturday', what: 'he ate through one piece of chocolate cake, one ice-cream cone, one pickle, one slice of Swiss cheese, one slice of salami, one lollipop, one piece of cherry pie, one sausage, one cupcake, and one slice of watermelon.', short: 'cake, ice cream, pickle, cheese, salami, lollipop, cherry pie, sausage, cupcake & watermelon', foods: ['cake', 'icecream', 'pickle', 'cheese', 'salami', 'lollipop', 'pie', 'sausage', 'cupcake', 'watermelon'], tex: 'pink', rows: 3 },
+  { day: 'Saturday', what: 'he ate through one piece of chocolate cake, one ice-cream cone, one pickle, one slice of Swiss cheese, one lollipop, and one slice of watermelon.', short: 'cake, ice cream, pickle, cheese, lollipop & watermelon', foods: ['cake', 'icecream', 'pickle', 'cheese', 'lollipop', 'watermelon'], tex: 'pink', rows: 3 },
   { day: 'Sunday', what: 'he ate through one nice green leaf, and after that he felt much better.', foods: ['leaf'], tex: 'leaf' },
 ];
 CP.TOTAL_FOODS = DAYS.reduce((a, d) => a + d.foods.length, 0);
@@ -188,6 +188,7 @@ class Game {
   }
   nextDay() {
     this.dayI++;
+    this.foods = this.foods.filter(o => !o.decoy || o.eaten >= 0);
     const d = DAYS[this.dayI]; if (!d) return;
     this.pending = this.groups(d); this.spawn(this.pending.shift());
     if (this.dayI === 0) { this.timing = true; this.elapsed = 0; }
@@ -272,7 +273,7 @@ class Game {
     this.hooks.onEat && this.hooks.onEat(f.key, left, this.dayI);
     if (left === 0) {
       if (this.dayI === 5) { this.queue = 2.2; this.ache = this.t; this.fatOn = this.t + 1.9; this.hooks.onAche && this.hooks.onAche(); }
-      else if (this.dayI === 6) { this.timing = false; this.hooks.onFinish && this.hooks.onFinish(this.score(), this.bumps, this.aches); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
+      else if (this.dayI === 6) { this.foods = this.foods.filter(o => !o.decoy); this.timing = false; this.hooks.onFinish && this.hooks.onFinish(this.score(), this.bumps, this.aches); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
       else this.queue = .75;
     }
   }
@@ -294,7 +295,7 @@ class Game {
   startTransform() {
     const segs = this.segPositions();
     const pts = segs.concat([{ x: this.at(this.headS)[0], y: this.at(this.headS)[1] }]), mx = pts.reduce((a, p) => a + p.x, 0) / pts.length, my = pts.reduce((a, p) => a + p.y, 0) / pts.length;
-    this.tf = { t: 0, segs: segs.map(s => ({ ...s })), head: this.at(this.headS), cx: clamp(mx, this.W * .3, this.W * .7), cy: clamp(my, this.H * .3, this.H * .6) };
+    this.tf = { t: 0, segs: segs.map(s => ({ ...s })), head: this.at(this.headS), cx: this.W / 2, cy: this.H * .5 };
     this.mode = 'transform'; this.foods = [];
     this.hooks.onTransform && this.hooks.onTransform();
   }
