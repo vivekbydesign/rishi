@@ -59,8 +59,9 @@ CP.buildSegments = () => {
     const r = rng(101 + i), rx = R * .6, ry = R;
     const cols = ['#f4c430','#f8dc52','#5aa9e6','#e8452a','#f39a1e','#a6d84e','#86ccf2','#f4c430'];
     g.lineCap = 'round';
-    for (let h = 0; h < 130; h++) {
-      const a = r() * TAU, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry;
+    // fur only along the back (local -y), wrapping a little over each end like the book
+    for (let h = 0; h < 95; h++) {
+      const a = PI + (r() * 1.3 - .15) * PI, ex = Math.cos(a) * rx, ey = Math.sin(a) * ry;
       let nx = Math.cos(a) / rx, ny = Math.sin(a) / ry; const nl = Math.hypot(nx, ny); nx /= nl; ny /= nl;
       const j = (r() - .5) * .7, vx = nx * Math.cos(j) - ny * Math.sin(j), vy = nx * Math.sin(j) + ny * Math.cos(j), len = 2 + r() * 5.5;
       g.strokeStyle = cols[(r() * cols.length) | 0]; g.globalAlpha = .5 + r() * .45; g.lineWidth = .35 + r() * .45;

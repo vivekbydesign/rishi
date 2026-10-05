@@ -479,9 +479,9 @@ class Game {
       if (onGround) for (const off of [-.28, .28]) {
         const step = Math.sin(this.phase - i * .8 + 1.2 + off * 4), fx = nx * sg, len = s.r * (.9 + .48 * fat - .05 * Math.max(0, step));
         g.save(); g.translate(s.x + fx * len + Math.cos(s.a) * s.r * (off + step * .06), s.y + fy * len + Math.sin(s.a) * s.r * (off + step * .06));
-        g.rotate(Math.atan2(fy, fx) - PI / 2); g.scale(sc * .42, sc * .5); g.drawImage(SEG.foot, -7, -5, 14, 16); g.restore();
+        g.rotate(Math.atan2(fy, fx) - PI / 2); g.scale(sc * .36, sc * .42); g.drawImage(SEG.foot, -7, -5, 14, 16); g.restore();
       }
-      g.save(); g.translate(s.x, s.y); g.rotate(s.a); if (fat) g.scale(1 + .12 * fat, 1 + .5 * fat);
+      g.save(); g.translate(s.x, s.y); g.rotate(s.a); g.scale(1, sg); if (fat) g.scale(1 + .12 * fat, 1 + .5 * fat);
       g.drawImage(list[(i * 7 + 3) % list.length], -S / 2 * sc, -S / 2 * sc, S * sc, S * sc); g.restore();
     }
     const hero = this.mode === 'hero' && !headPos, h = headPos || (hero ? this.inchHead : this.at(this.headS)), d = this.hdir || 0;
