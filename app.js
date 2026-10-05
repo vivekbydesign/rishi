@@ -58,7 +58,7 @@ let openSheet = null;
 const show = id => { if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
-if (fine) document.querySelector('.coach-t').textContent = 'Steer with the arrow keys (or click and hold)';
+if (fine) document.querySelector('.coach-t').textContent = 'Click where you want him to go';
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && game.mode === 'play') goInvite(); return; }
   if (!game || openSheet || game.mode !== 'hero' || ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -178,6 +178,6 @@ function introCat() {
   if (/[?&]auto=1/.test(q)) { state.name = state.name || 'Robo'; setTimeout(startGame, 500); return; }
   if (/[?&]state=scores/.test(q)) { renderBoard(); show('scoreSheet'); return; }
   if (/[?&]state=rest/.test(q)) { game.setRest(); flyLater(); return; }
-  setTimeout(() => { if (!openSheet && game.mode === 'hero') show('introSheet'); }, 900);
+  setTimeout(() => { if (!openSheet && game.mode === 'hero') show('introSheet'); }, 60);
 })();
 })();
