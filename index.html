@@ -17,6 +17,8 @@
     <div class="deco" aria-hidden="true">
       <img class="sun" src="assets/sun.png" alt="">
       <img class="branch" src="assets/branch.png" alt="">
+      <img class="sprig sprig-l" src="assets/branch.png" alt="">
+      <img class="sprig sprig-r" src="assets/branch.png" alt="">
     </div>
 
     <section class="invite" id="invite" aria-label="Invitation">
@@ -52,17 +54,17 @@
     </nav>
 
     <header class="hud" id="hud" aria-label="Game status">
-      <button class="icon-btn" id="quitBtn" aria-label="Back to the invite">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
-      </button>
       <div class="daypill"><span class="dayname" id="dayName">Monday</span><span class="dayfood" id="dayFood"></span></div>
       <span class="timer" id="timer">0<small>pts</small></span>
       <ol class="week" id="week" aria-label="Days fed"><li>M</li><li>T</li><li>W</li><li>T</li><li>F</li><li>S</li><li class="wk-sun">S</li></ol>
+    </header>
+    <div class="ctrl" id="ctrl">
       <button class="icon-btn" id="muteBtn" aria-label="Sound on" aria-pressed="false">
         <svg viewBox="0 0 24 24" width="20" height="20" class="snd-on"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 010 7M18.6 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>
         <svg viewBox="0 0 24 24" width="20" height="20" class="snd-off"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
-    </header>
+      <button class="btn ghost skip" id="quitBtn">Skip game<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
 
     <div class="banner" id="banner" aria-live="polite"><span class="b-day" id="bDay"></span><span class="b-what" id="bWhat"></span></div>
     <p class="goal" id="goal"><span>Eat all the food to get</span> <b>Rishi’s invite</b></p>

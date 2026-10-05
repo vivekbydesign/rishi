@@ -44,7 +44,7 @@ class Game {
     const inv = document.getElementById('invite'), hero = document.getElementById('hero'), hr = hero.getBoundingClientRect();
     this.glyph = { x: inv.offsetLeft + hero.offsetLeft + (o.left - hr.left), y: inv.offsetTop + hero.offsetTop + (o.top - hr.top), w: o.width, h: o.height };
     const hud = document.getElementById('hud');
-    this.top = Math.max(76, (hud ? hud.getBoundingClientRect().bottom - c.top : 60) + 18);
+    this.top = Math.max(110, (hud ? hud.offsetTop + hud.offsetHeight : 60) + 22);
   }
   bindInput() {
     const pos = e => { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -169,12 +169,13 @@ class Game {
     this.hooks.onDay && this.hooks.onDay(this.dayI, d);
   }
   spawn(keys) {
-    const m = 34 * this.fs, top = this.top + 20, bot = this.H - m - 40, r = this.rng, head = this.at(this.headS);
+    const m = 34 * this.fs, top = this.top + 20, bot = this.H - m - 96, r = this.rng, head = this.at(this.headS);
     const placed = [];
     keys.forEach((key, i) => {
       let best = null, bestD = -1;
       for (let k = 0; k < 160; k++) {
         const x = m + r() * (this.W - 2 * m), y = top + r() * (bot - top);
+        if ((x < this.W * .24 && y > this.H * .46 && y < this.H * .7) || (x > this.W * .76 && y > this.H * .64 && y < this.H * .88)) continue;
         const dh = Math.hypot(x - head[0], y - head[1]);
         let dmin = Infinity; placed.concat(this.foods).forEach(f => { dmin = Math.min(dmin, Math.hypot(x - f.x, y - f.y)); });
         const score = Math.min(dmin, 160) + (dh > 100 ? 40 : -200);
