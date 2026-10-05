@@ -299,7 +299,7 @@ class Game {
     this.mode = 'transform'; this.foods = [];
     this.hooks.onTransform && this.hooks.onTransform();
   }
-  restPose() { const g = this.glyph; return { x: g.x + g.w * .5, y: g.y + g.h * .02, w: Math.min(this.W * .5, 215), tilt: -.08 }; }
+  restPose() { const g = this.glyph; return { x: g.x + g.w * .5, y: g.y + g.h * .02, w: Math.min(this.W * .64, 270), tilt: -.08 }; }
   setRest() { this.layout(); this.mode = 'rest'; this.bf = Object.assign({ p: 0, burst: 1.5, alpha: 1 }, this.restPose()); this.foods = []; }
 
   /* ---------- per frame ---------- */
@@ -524,7 +524,7 @@ class Game {
     }
     // 3. butterfly unfolds and flies to the "1"
     if (t > 3.85) {
-      const u = clamp((t - 3.85) / 1.05, 0, 1), restW = Math.min(this.W * .5, 215);
+      const u = clamp((t - 3.85) / 1.05, 0, 1), restW = Math.min(this.W * .64, 270);
       let x = f.cx, y = f.cy + 6, w = restW * (.55 + .45 * ease.out(u)), flap = u < 1 ? this.flapX(PI * (1 - ease.out(u))) : 1, tilt = 0;
       if (f.path && t > 4.8) {
         const v = clamp((t - 4.8) / 3.5, 0, 1), e = ease.inOut(v), P = f.path, seg = P.length - 3, q = Math.min(seg - 1e-6, e * seg), i = Math.floor(q), l = q - i;
