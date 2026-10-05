@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const out = new URL('./shots/', import.meta.url).pathname;
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+const errs = [];
+const page = async (q, waits) => { const p = await ctx.newPage(); p.on('console', m => m.type() === 'error' && errs.push(q + ': ' + m.text())); p.on('pageerror', e => errs.push(q + ': ' + e.message)); await p.goto('http://localhost:8080/' + q); for (const [ms, name] of waits) { await p.waitForTimeout(ms); await p.screenshot({ path: out + name + '.png' }); } return p; };
+await page('', [[1500, '01-entrance'], [3500, '02-intro']]);
+const p2 = await page('?x=1', [[200, 'x']]); await p2.evaluate(() => localStorage.setItem('rishi1.name', 'Vivek')); await p2.goto('http://localhost:8080/'); await p2.waitForTimeout(5000); await p2.screenshot({ path: out + '03-invite.png' });
+await page('?auto=1', [[3000, '04-monday'], [9000, '05-mid'], [14000, '06-later'], [16000, '07-late'], [12000, '08-end']]);
+await page('?state=rest', [[1500, '09-rest']]);
+await page('?state=scores', [[1200, '10-scores']]);
+console.log(errs.join('\n') || 'no errors');
+await b.close();
