@@ -153,7 +153,7 @@ $('rsvpForm').onsubmit = e => { e.preventDefault(); const name = $('rsvpName').v
   if (r.go === 'yes') { fanfare(); if (navigator.vibrate) navigator.vibrate([12, 40, 12]); } else tone(523, 0, .4, 'sine', .06);
 };
 paintRsvp();
-function paintPlay() { const again = readScores().length > 0; $('playLabel').textContent = again ? 'Play again' : 'Play'; $('playBtn').setAttribute('aria-label', again ? 'Play the caterpillar game again' : 'Play the caterpillar game'); }
+function paintPlay() { const again = readScores().length > 0; $('playLabel').textContent = again ? 'Play again' : 'Play game'; $('playBtn').setAttribute('aria-label', again ? 'Play the caterpillar game again' : 'Play the caterpillar game'); }
 paintPlay();
 
 /* wiring */
