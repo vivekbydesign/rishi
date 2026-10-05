@@ -21,9 +21,33 @@ LT.forEach(([ch, t], i) => { const s = document.createElement('span'); s.textCon
 let ac = null;
 const audio = () => { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === 'suspended') ac.resume(); return ac; };
 const tone = (f, t0, d, type = 'triangle', v = .12) => { const a = audio(); if (!a || state.muted) return; const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.setValueAtTime(f, a.currentTime + t0); g.gain.setValueAtTime(0, a.currentTime + t0); g.gain.linearRampToValueAtTime(v, a.currentTime + t0 + .015); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t0 + d); o.connect(g).connect(a.destination); o.start(a.currentTime + t0); o.stop(a.currentTime + t0 + d + .05); };
-const munch = () => { const a = audio(); if (!a || state.muted) return; for (let i = 0; i < 2; i++) { const len = .07, b = a.createBuffer(1, a.sampleRate * len, a.sampleRate), d = b.getChannelData(0); for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / d.length, 2); const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); f.type = 'bandpass'; f.frequency.value = 1400 + i * 500; f.Q.value = .9; g.gain.value = .45; s.buffer = b; s.connect(f).connect(g).connect(a.destination); s.start(a.currentTime + i * .09); } };
+/* chew: soft jaw thock + crunchy paper bite, three chomps that taper off */
+const noise = (a, len) => { const b = a.createBuffer(1, Math.max(1, a.sampleRate * len | 0), a.sampleRate), d = b.getChannelData(0); for (let j = 0; j < d.length; j++) d[j] = Math.random() * 2 - 1; const s = a.createBufferSource(); s.buffer = b; return s; };
+const chomp = (a, t, v, bright) => {
+  const n = noise(a, .09), f = a.createBiquadFilter(), g = a.createGain();
+  f.type = 'bandpass'; f.Q.value = 1.4; f.frequency.setValueAtTime(bright * (.85 + Math.random() * .3), t); f.frequency.exponentialRampToValueAtTime(bright * .45, t + .07);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .004); g.gain.exponentialRampToValueAtTime(.0001, t + .08);
+  n.connect(f).connect(g).connect(a.destination); n.start(t); n.stop(t + .1);
+  const o = a.createOscillator(), og = a.createGain(); o.type = 'sine';
+  o.frequency.setValueAtTime(150 + Math.random() * 30, t); o.frequency.exponentialRampToValueAtTime(70, t + .06);
+  og.gain.setValueAtTime(0, t); og.gain.linearRampToValueAtTime(v * .7, t + .006); og.gain.exponentialRampToValueAtTime(.0001, t + .07);
+  o.connect(og).connect(a.destination); o.start(t); o.stop(t + .09);
+};
+const munch = (leaf) => { const a = audio(); if (!a || state.muted) return; const t = a.currentTime + .01, n = leaf ? 2 : 3, br = leaf ? 2600 : 1700; for (let i = 0; i < n; i++) chomp(a, t + i * (.13 + Math.random() * .03), (leaf ? .2 : .26) * (1 - i * .22), br); };
+/* butterfly: rising glass sparkle over a breathy wing-flutter, with a soft echo tail */
+const shimmer = () => {
+  const a = audio(); if (!a || state.muted) return; const t = a.currentTime + .02;
+  const out = a.createGain(), dl = a.createDelay(), fb = a.createGain(), wet = a.createGain(); out.gain.value = 1; dl.delayTime.value = .19; fb.gain.value = .38; wet.gain.value = .35;
+  out.connect(a.destination); out.connect(dl); dl.connect(fb).connect(dl); dl.connect(wet).connect(a.destination);
+  const notes = [1047, 1175, 1319, 1568, 1760, 2093, 2349, 2637, 3136, 3520];
+  notes.forEach((f, i) => { const at = t + i * .075 + Math.random() * .015; [0, 7].forEach(dt => { const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.value = f; o.detune.value = dt; g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.035 * (1 - i * .05), at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + .9); o.connect(g).connect(out); o.start(at); o.stop(at + 1); }); });
+  const n = noise(a, 1.6), hp = a.createBiquadFilter(), g = a.createGain(), lfo = a.createOscillator(), lg = a.createGain();
+  hp.type = 'bandpass'; hp.Q.value = .7; hp.frequency.setValueAtTime(1200, t); hp.frequency.exponentialRampToValueAtTime(6000, t + 1.2);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.05, t + .5); g.gain.exponentialRampToValueAtTime(.0001, t + 1.6);
+  lfo.frequency.value = 9; lg.gain.value = .03; lfo.connect(lg).connect(g.gain);
+  n.connect(hp).connect(g).connect(out); n.start(t); n.stop(t + 1.65); lfo.start(t); lfo.stop(t + 1.65);
+};
 const chime = () => { [659, 784, 988].forEach((f, i) => tone(f, i * .08, .5, 'sine', .08)); };
-const fanfare = () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * .11, .9, 'triangle', .09)); };
 const setMute = m => { state.muted = m; localStorage.setItem('rishi1.muted', m ? '1' : '0'); $('muteBtn').classList.toggle('muted', m); $('muteBtn').setAttribute('aria-pressed', m); $('muteBtn').setAttribute('aria-label', m ? 'Sound off' : 'Sound on'); };
 setMute(state.muted);
 $('muteBtn').onclick = () => setMute(!state.muted);
@@ -79,17 +103,17 @@ let game;
 const hooks = {
   onDay(i, d) { $('dayName').textContent = d.day; hudFoods(d); banner('On ' + d.day, BW[i], d.tex); chime(); },
   onEat(key, left) { munch(); if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
-  onBump() { tone(180, 0, .18, 'square', .05); if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
+  onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
-  onSpawn() { tone(1046, 0, .12, 'sine', .05); },
+  onSpawn() {},
   onHatchStart() { banner('One night…', 'a little egg lay on a leaf', 'plum', true); },
-  onHatch() { tone(880, 0, .12, 'square', .05); tone(1320, .05, .25, 'sine', .07); if (navigator.vibrate) navigator.vibrate(18); banner('Pop!', 'out came a tiny caterpillar', 'apple'); },
-  onBite() { munch(); if (navigator.vibrate) navigator.vibrate(10); },
-  onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); tone(220, 0, .4, 'sine', .08); tone(196, .25, .5, 'sine', .08); },
-  onDecoy() { tone(240, 0, .3, 'sine', .08); tone(170, .18, .45, 'sine', .08); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); banner('Pop!', 'out came a tiny caterpillar', 'apple'); },
+  onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
+  onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
+  onDecoy() { if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onFinish(secs, bumps, aches) { state.lastTime = secs; state.lastBumps = bumps; state.lastAches = aches || 0; banner('Much better!', 'He wasn’t hungry anymore', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },
-  onEmerge() { fanfare(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
+  onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
 };
@@ -142,7 +166,7 @@ const openRsvp = go => { const r = readRsvp();
 document.querySelectorAll('[data-rsvp]').forEach(b => b.onclick = () => openRsvp(b.dataset.rsvp));
 $('rsvpDone').onclick = () => openRsvp();
 document.querySelectorAll('#rsvpSheet .seg button').forEach(b => b.onclick = () => setGo(b.dataset.go));
-document.querySelectorAll('.st-b').forEach(b => b.onclick = () => { const k = b.dataset.k; rs[k] = Math.min(10, Math.max(k === 'a' ? 1 : 0, rs[k] + +b.dataset.d)); paintCount(); tone(rs[k] > 0 ? 660 + rs[k] * 40 : 440, 0, .12, 'sine', .05); });
+document.querySelectorAll('.st-b').forEach(b => b.onclick = () => { const k = b.dataset.k; rs[k] = Math.min(10, Math.max(k === 'a' ? 1 : 0, rs[k] + +b.dataset.d)); paintCount(); });
 $('rsvpName').oninput = () => { $('rsvpName').classList.remove('bad'); $('rsvpErr').textContent = ''; };
 $('rsvpForm').onsubmit = e => { e.preventDefault(); const name = $('rsvpName').value.replace(/\s+/g, ' ').trim().slice(0, 40);
   if (!name) { $('rsvpErr').textContent = 'Add your name so Rishi knows who’s coming.'; $('rsvpName').classList.add('bad'); $('rsvpName').focus(); return; }
@@ -150,7 +174,7 @@ $('rsvpForm').onsubmit = e => { e.preventDefault(); const name = $('rsvpName').v
   localStorage.setItem(RSVP_KEY, JSON.stringify(r)); $('rsvpName').blur(); $('rsvpNote').blur();
   post('/rsvp', r);
   show(null); paintRsvp(true);
-  if (r.go === 'yes') { fanfare(); if (navigator.vibrate) navigator.vibrate([12, 40, 12]); } else tone(523, 0, .4, 'sine', .06);
+  if (r.go === 'yes' && navigator.vibrate) navigator.vibrate([12, 40, 12]);
 };
 paintRsvp();
 function paintPlay() { const again = readScores().length > 0; $('playLabel').textContent = again ? 'Play again' : 'Play game'; $('playBtn').setAttribute('aria-label', again ? 'Play the caterpillar game again' : 'Play the caterpillar game'); }
