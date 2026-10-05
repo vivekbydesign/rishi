@@ -305,7 +305,8 @@ class Game {
       else if (this.mode !== 'play' || t - h.popped > 4) this.hatch = null;
     }
     if (this.mode === 'hero') {
-      this.inch.t += dt; this.speed = 0;
+      // wait off-screen while a sheet covers the invite; crawl in once it closes
+      if (!(this.inch.t < .01 && this.card.classList.contains('sheet-open'))) this.inch.t += dt; this.speed = 0;
     } else if (this.mode === 'play') {
       const sh = this.shrink; if (sh && sh.t < 1) { sh.t = Math.min(1, sh.t + dt / 1.3); this.R = lerp(sh.R0, 13, ease.inOut(sh.t)); }
       else { const target = lerp(13 + 5 * this.eaten / CP.TOTAL_FOODS, 20, ease.inOut(this.fat)); this.R = lerp(this.R, target, 1 - Math.exp(-dt * 4)); }

@@ -170,7 +170,7 @@ $('resAgain').onclick = () => { game.buildHero(false); startGame(); };
 $('resScores').onclick = () => { renderBoard(); show('scoreSheet'); };
 $('scClose').onclick = $('scBack').onclick = () => goInvite();
 // swipe a sheet down to close it
-['scoreSheet', 'rsvpSheet'].forEach(id => {
+['introSheet', 'scoreSheet', 'rsvpSheet'].forEach(id => {
   const sh = $(id); let y0 = null, dy = 0, t0 = 0;
   sh.addEventListener('touchstart', e => { const sc = e.target.closest('.board'); if (sc && sc.scrollTop > 0) return; y0 = e.touches[0].clientY; dy = 0; t0 = performance.now(); }, { passive: true });
   sh.addEventListener('touchmove', e => { if (y0 === null) return; dy = Math.max(0, e.touches[0].clientY - y0); if (dy > 4) { sh.classList.add('dragging'); sh.style.transform = `translateY(${dy}px)`; if (e.cancelable) e.preventDefault(); } }, { passive: false });
