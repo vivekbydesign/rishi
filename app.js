@@ -54,7 +54,7 @@ const renderBoard = async () => {
 };
 
 /* sheets */
-let openSheet = null;
+let openSheet = $('introSheet');
 const show = id => { if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
@@ -175,9 +175,9 @@ function introCat() {
   game = window.__game = new CP.Game($('cv'), card, hooks);
   game.buildHero(true); tick();
   const q = location.search;
+  if (/[?&](auto=1|state=)/.test(q)) show(null); else requestAnimationFrame(introCat);
   if (/[?&]auto=1/.test(q)) { state.name = state.name || 'Robo'; setTimeout(startGame, 500); return; }
   if (/[?&]state=scores/.test(q)) { renderBoard(); show('scoreSheet'); return; }
   if (/[?&]state=rest/.test(q)) { game.setRest(); flyLater(); return; }
-  setTimeout(() => { if (!openSheet && game.mode === 'hero') show('introSheet'); }, 60);
 })();
 })();
