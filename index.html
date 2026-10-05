@@ -13,27 +13,31 @@
 </head>
 <body>
 <main class="stage">
-  <div class="card sheet-open" id="card">
+  <div class="card sheet-open intro-open" id="card">
     <div class="deco" aria-hidden="true">
       <img class="sun" src="assets/sun.png" alt="">
       <img class="branch" src="assets/branch.png" alt="">
     </div>
 
     <section class="invite" id="invite" aria-label="Invitation">
-      <svg class="arch" viewBox="0 0 400 74" aria-hidden="true">
-        <path id="archPath" d="M8,70 Q200,-14 392,70" fill="none"/>
-        <text><textPath href="#archPath" startOffset="50%" text-anchor="middle">our very hungry caterpillar</textPath></text>
+      <svg class="arch arch-top" viewBox="0 0 400 74" aria-hidden="true">
+        <path id="joinPath" d="M8,70 Q200,-14 392,70" fill="none"/>
+        <text><textPath href="#joinPath" startOffset="50%" text-anchor="middle">join us to celebrate</textPath></text>
       </svg>
+      <p class="sr">Join us to celebrate</p>
       <div class="hero" id="hero"><svg class="one" id="one" viewBox="0 0 236 446" aria-hidden="true">
           <defs><pattern id="pOne" patternUnits="userSpaceOnUse" width="190" height="190" patternTransform="rotate(-8)"><image href="assets/tex/redone.jpg" width="190" height="190"/></pattern></defs>
           <text id="oneT" x="0" y="0" font-family="Arvo" font-weight="700" font-size="600" fill="url(#pOne)">1</text>
         </svg></div>
+      <svg class="arch" viewBox="0 0 400 44" aria-hidden="true">
+        <path id="archPath" d="M14,40 Q200,2 386,40" fill="none"/>
+        <text><textPath href="#archPath" startOffset="50%" text-anchor="middle">our very hungry caterpillar</textPath></text>
+      </svg>
       <h1 class="name"><span class="sr">Rishi</span><span class="letters" id="nameLetters" aria-hidden="true"></span></h1>
       <p class="turning">is turning one!</p>
       <div class="foodrow" aria-hidden="true">
         <img src="assets/f_apple.png" alt=""><img src="assets/f_pear.png" alt=""><img src="assets/f_plum.png" alt=""><img src="assets/f_strawberry.png" alt=""><img src="assets/f_orange.png" alt="">
       </div>
-      <p class="join">Join us to celebrate</p>
       <div class="details">
         <div class="col date"><span class="k">Sunday</span><span class="big">22</span><span class="k">Nov</span></div>
         <div class="col place">
@@ -87,7 +91,7 @@
         <label for="nameInput">Your name</label>
         <input id="nameInput" name="name" autocomplete="given-name" maxlength="20" placeholder="Enter your name" enterkeyhint="go">
         <p class="err" id="nameErr" role="alert"></p>
-        <button class="btn primary wide" type="submit">Start game</button>
+        <button class="btn primary wide" type="submit"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="4.6" cy="16.6" r="2.3"/><circle cx="8.9" cy="17.4" r="2.5"/><circle cx="13.4" cy="16.9" r="2.6"/><circle cx="18" cy="13.4" r="3.2"/><path d="M17 10.4 15.9 6.6M19.4 10.5l1.4-3.6"/><circle cx="15.9" cy="6.3" r=".5" fill="currentColor"/><circle cx="20.9" cy="6.6" r=".5" fill="currentColor"/><circle cx="18.9" cy="12.9" r=".7" fill="currentColor" stroke="none"/></svg>Start game</button>
       </form>
       <button class="btn link" id="skipBtn">Skip to the invite</button>
     </section>
