@@ -79,6 +79,7 @@ const hooks = {
   onSpawn() { tone(1046, 0, .12, 'sine', .05); },
   onHatchStart() { banner('Shh…', 'a little egg lay on a leaf', 'plum', true); },
   onHatch() { tone(880, 0, .12, 'square', .05); tone(1320, .05, .25, 'sine', .07); if (navigator.vibrate) navigator.vibrate(18); banner('Pop!', 'out came a tiny caterpillar', 'apple'); },
+  onBite() { munch(); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); tone(220, 0, .4, 'sine', .08); tone(196, .25, .5, 'sine', .08); },
   onFinish(secs, bumps) { [...$('week').children].forEach(li => { li.classList.remove('now'); li.classList.add('done'); }); state.lastTime = secs; state.lastBumps = bumps; banner('Much better', 'Now he is big and fat', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },

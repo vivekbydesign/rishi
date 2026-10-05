@@ -21,7 +21,7 @@ class Game {
     this.t = 0; this.mode = 'idle'; this.particles = []; this.foods = [];
     this.trail = []; this.cum = []; this.phase = 0; this.wig = 0; this.nextWig = 5;
     this.face = 1; this.faceT = 1; this.blink = 0; this.nextBlink = 2.5; this.chomp = 0;
-    this.R = 20; this.n = 9; this.nShow = 9; this.speed = 0;
+    this.R = 20; this.n = 9; this.nShow = 9; this.speed = 0; this.ripples = []; this.fat = 0;
     this.input = { down: false, x: 0, y: 0 }; this.auto = /[?&]auto=1/.test(location.search);
     this.bf = null; this.rng = rng(Date.now() & 0xffff);
     this.resize();
@@ -51,7 +51,7 @@ class Game {
   bottom() { return this.H - 78; }
   bindInput() {
     const pos = e => { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; this.setTarget(); this.hooks.onTouch && this.hooks.onTouch(); });
+    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; this.setTarget(); this.ripples.push({ x: this.input.x, y: this.input.y, t: this.t }); this.hooks.onTouch && this.hooks.onTouch(); });
     this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); this.setTarget(); });
     const up = () => { this.input.down = false; };
     this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', up);
@@ -87,7 +87,7 @@ class Game {
     const tail0 = entrance ? -L - 40 : headX - L, dist = headX - L - tail0, cycles = entrance ? Math.max(3, Math.round(dist / (L * .5))) : 0;
     const D = cycles ? dist / cycles : 0, S = D || L * .5;
     this.inch = { t: entrance ? 0 : 99, L, base, headX, tail0, cycles, D, S, cyc: .95, gRest: (1 - restRatio) * A / S, neckRest: .3 };
-    this.hero = { t: 0 }; this.mode = 'hero'; this.bf = null; this.foods = []; this.speed = 0; this.wig = 0;
+    this.hero = { t: 0 }; this.mode = 'hero'; this.bf = null; this.foods = []; this.speed = 0; this.wig = 0; this.fat = 0; this.fatOn = 0;
   }
   // one inch cycle, read from the film: head plants, tail pulls up into a tall slinky loop, short hold, head reaches and the loop rolls out flat
   inchState() {
@@ -130,7 +130,7 @@ class Game {
     const segs = this.inchSegs();
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
-    this.dayI = -1; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.safeUntil = 0; this.target = null;
+    this.dayI = -1; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
     this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {};
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
@@ -175,19 +175,34 @@ class Game {
     const m = 56 * this.fs, top = this.top + 44, bot = this.H - 150, r = this.rng, head = this.at(this.headS);
     const placed = [];
     keys.forEach((key, i) => {
+      const mm = Math.max(m, FOOD[key].w * this.fs * (key === 'leaf' ? 2.4 : 1) * .55);
       let best = null, bestD = -1;
       for (let k = 0; k < 160; k++) {
-        const x = m + r() * (this.W - 2 * m), y = top + r() * (bot - top);
+        const x = mm + r() * (this.W - 2 * mm), y = top + r() * (bot - top);
         const dh = Math.hypot(x - head[0], y - head[1]);
         let dmin = Infinity; placed.concat(this.foods).forEach(f => { dmin = Math.min(dmin, Math.hypot(x - f.x, y - f.y)); });
         const score = Math.min(dmin, 160) + (dh > 100 ? 40 : -200);
         if (score > bestD) { bestD = score; best = [x, y]; }
         if (dmin > 74 * this.fs && dh > 110) break;
       }
-      const f = FOOD[key], sc = this.fs * (key === 'leaf' ? 1.25 : 1);
-      const food = { key, x: best[0], y: best[1], w: f.w * sc, h: f.h * sc, born: this.t + i * .07, rot: (r() - .5) * .3, ph: r() * TAU, eaten: -1 };
+      const f = FOOD[key], sc = this.fs * (key === 'leaf' ? 2.4 : 1);
+      const food = { key, x: best[0], y: best[1], w: f.w * sc, h: f.h * sc, born: this.t + i * .07, rot: (r() - .5) * .3, ph: r() * TAU, eaten: -1, bites: key === 'leaf' ? 4 : 1, biteAt: 0, holes: [], sc };
       placed.push(food); this.foods.push(food);
     });
+  }
+  // the big leaf goes in bites; each one leaves a scalloped hole
+  bite(f, h) {
+    if (this.t - f.biteAt < .5) return;
+    f.biteAt = this.t; f.bites--; this.chomp = 1;
+    const F = FOOD[f.key], c = Math.cos(-f.rot), s = Math.sin(-f.rot), dx = h[0] - f.x, dy = h[1] - f.y;
+    let lx = (dx * c - dy * s) / f.sc, ly = (dx * s + dy * c) / f.sc; const L = Math.hypot(lx, ly) || 1, rr = Math.min(F.w, F.h) * .3;
+    lx = lx / L * Math.min(L, F.w * .32); ly = ly / L * Math.min(L, F.h * .3);
+    f.holes.push([lx, ly, rr]);
+    const cv = f.cv || (f.cv = document.createElement('canvas')), k = 3; cv.width = F.w * k; cv.height = F.h * k;
+    const g = cv.getContext('2d'); g.drawImage(F.img, 0, 0, cv.width, cv.height); g.globalCompositeOperation = 'destination-out'; g.scale(k, k); g.translate(F.w / 2, F.h / 2);
+    f.holes.forEach(([x, y, r], i) => { for (let j = 0; j < 5; j++) { const a = j / 5 * TAU + i; g.beginPath(); g.arc(x + Math.cos(a) * r * .55, y + Math.sin(a) * r * .55, r * .6, 0, TAU); g.fill(); } });
+    for (let i = 0; i < 7; i++) { const a = this.rng() * TAU, v = 40 + this.rng() * 70; this.particles.push({ x: h[0], y: h[1], vx: Math.cos(a) * v, vy: Math.sin(a) * v - 30, r: 1.5 + this.rng() * 2.5, col: FOOD[f.key].col, life: .5, age: 0, g: 240 }); }
+    this.hooks.onBite && this.hooks.onBite(f.bites);
   }
   eat(f) {
     f.eaten = this.t; this.eaten++; this.n++; this.chomp = 1;
@@ -197,7 +212,7 @@ class Game {
     const left = this.foods.filter(o => o.eaten < 0).length + (this.pending ? this.pending.length : 0);
     this.hooks.onEat && this.hooks.onEat(f.key, left, this.dayI);
     if (left === 0) {
-      if (this.dayI === 5) { this.queue = 2.2; this.ache = this.t; this.hooks.onAche && this.hooks.onAche(); }
+      if (this.dayI === 5) { this.queue = 2.2; this.ache = this.t; this.fatOn = this.t + 1.9; this.hooks.onAche && this.hooks.onAche(); }
       else if (this.dayI === 6) { this.timing = false; this.hooks.onFinish && this.hooks.onFinish(this.score(), this.bumps); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
       else this.queue = .75;
     }
@@ -244,12 +259,13 @@ class Game {
       this.inch.t += dt; this.speed = 0;
     } else if (this.mode === 'play') {
       const sh = this.shrink; if (sh && sh.t < 1) { sh.t = Math.min(1, sh.t + dt / 1.3); this.R = lerp(sh.R0, 13, ease.inOut(sh.t)); }
-      else { const target = 13 + 5 * this.eaten / CP.TOTAL_FOODS; this.R = lerp(this.R, target, 1 - Math.exp(-dt * 4)); }
+      else { const target = lerp(13 + 5 * this.eaten / CP.TOTAL_FOODS, 20, ease.inOut(this.fat)); this.R = lerp(this.R, target, 1 - Math.exp(-dt * 4)); }
       if (this.queue > 0) { this.queue -= dt; if (this.queue <= 0) this.nextDay(); }
       if (this.spawnAt && t > this.spawnAt) { this.spawnAt = 0; this.spawn([this.pending.shift()]); this.hooks.onSpawn && this.hooks.onSpawn(); }
       if (this.timing) this.elapsed += dt;
+      if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / 1.4);
       const aching = this.ache && t - this.ache < 2;
-      this.speed = 180 * this.fs * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
+      this.speed = 180 * this.fs * (1 - .22 * this.fat) * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
       this.steer(dt);
       if (aching) this.dir += Math.sin(t * 9) * dt * 2;
       const h = this.at(this.headS); this.push(h[0] + Math.cos(this.dir) * this.speed * dt, h[1] + Math.sin(this.dir) * this.speed * dt); this.headS = this.cum[this.cum.length - 1];
@@ -258,13 +274,13 @@ class Game {
       this.checkWall(hh);
       if (this.timing && t > this.safeUntil) this.checkBump(hh);
       this.near = 0;
-      this.foods.forEach(f => { if (f.eaten >= 0 || t < f.born) return; const d = Math.hypot(f.x - hh[0], f.y - hh[1]); if (d < 70) this.near = 1; if (d < this.R * 1.5 + 26 * this.fs) this.eat(f); });
+      this.foods.forEach(f => { if (f.eaten >= 0 || t < f.born) return; const d = Math.hypot(f.x - hh[0], f.y - hh[1]); if (d < 70) this.near = 1; if (d < this.R * 1.5 + (f.bites > 1 ? f.w * .3 : 26 * this.fs)) { if (f.bites > 1) this.bite(f, hh); else this.eat(f); } });
       this.foods = this.foods.filter(f => f.eaten < 0 || t - f.eaten < .9);
     } else if (this.mode === 'transform') this.stepTransform(dt);
     else if (this.mode === 'rest') this.stepButterfly(dt);
     else if (this.mode === 'leave') { this.lv.t += dt; if (this.lv.t > 4.2) this.buildHero(true); }
     if (this._m !== this.mode) { this._m = this.mode; this.card.classList.toggle('behind', this.mode === 'hero'); }
-    this.nShow = lerp(this.nShow, this.n, 1 - Math.exp(-dt * 6));
+    this.nShow = lerp(this.nShow, this.fat ? lerp(this.n, 11, ease.inOut(this.fat)) : this.n, 1 - Math.exp(-dt * 6));
     this.wig = Math.max(0, this.wig - dt * .7);
     // head facing with hysteresis
     if (this.mode === 'hero' || this.mode === 'play') {
@@ -296,15 +312,15 @@ class Game {
   /* ---------- body geometry ---------- */
   segPositions() {
     if (this.mode === 'hero' && this.inch) return this.inchSegs();
-    const R = this.R, gap = R * .9, base = R * .97, out = [], amp = clamp(Math.abs(this.speed) / 60, 0, 1) * (this.mode === 'hero' ? .2 : .13), wig = this.wig;
+    const R = this.R, gap = R * .9, base = R * .97, out = [], amp = clamp(Math.abs(this.speed) / 60, 0, 1) * (this.mode === 'hero' ? .2 : .2), wig = this.wig, play = this.mode === 'play';
     const N = Math.ceil(this.nShow);
     let d = gap;
     for (let k = 0; k < N; k++) {
-      const w = Math.sin(this.phase - k * .8), w2 = Math.sin(this.t * 2.2 - k * .55);
-      if (k) d += base * (1 + amp * w + wig * .18 * Math.sin(this.t * 14 - k));
+      const w = play ? Math.sin(this.phase * .8 + k * .6) : Math.sin(this.phase - k * .8), w2 = Math.sin(this.t * 2.2 - k * .55);
+      if (k) d += base * (1 + .05 * this.fat) * (1 + amp * w + wig * .18 * Math.sin(this.t * 14 - k));
       const s = this.headS - d, p = this.at(s), q = this.at(s + R * .5);
       const a = Math.atan2(q[1] - p[1], q[0] - p[0]);
-      const lift = R * (amp * .9 * Math.max(0, w) + .03 * w2 + wig * .12 * Math.max(0, Math.sin(this.t * 14 - k)));
+      const lift = R * ((play ? amp * .32 * Math.pow(Math.max(0, -w), 2) : amp * .9 * Math.max(0, w)) + .03 * w2 + wig * .12 * Math.max(0, Math.sin(this.t * 14 - k)));
       const frac = k === N - 1 ? clamp(this.nShow - k, .15, 1) : 1;
       const r = R * (1 + .03 * w2 + amp * .25 * w) * frac * this.taper(k, N);
       out.push({ x: p[0], y: p[1] - lift, a, r, k, w });
@@ -315,9 +331,10 @@ class Game {
   /* ---------- drawing ---------- */
   draw() {
     const g = this.g; g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, this.W, this.H);
-    if (this.mode === 'play' && this.target) { const k = clamp((this.t - this.target.t) / .35, 0, 1), tg = this.target;
-      g.save(); g.globalAlpha = .55 * (1 - .4 * k); g.strokeStyle = '#2e8b3a'; g.lineWidth = 2.5; g.beginPath(); g.arc(tg.x, tg.y, 10 + 8 * ease.out(k), 0, TAU); g.stroke();
-      g.fillStyle = '#2e8b3a'; g.beginPath(); g.arc(tg.x, tg.y, 3, 0, TAU); g.fill(); g.restore(); }
+    this.ripples = this.ripples.filter(rp => this.t - rp.t < .6);
+    this.ripples.forEach(rp => { const k = (this.t - rp.t) / .6, e = ease.out(k), r = 8 + 30 * e;
+      g.save(); g.globalAlpha = .22 * (1 - k); g.fillStyle = '#2e8b3a'; g.beginPath(); g.arc(rp.x, rp.y, r, 0, TAU); g.fill();
+      g.globalAlpha = .35 * (1 - k); g.strokeStyle = '#2e8b3a'; g.lineWidth = 1.5; g.stroke(); g.restore(); });
     if (this.mode === 'play' || this.mode === 'transform') this.drawFoods(g);
     this.drawParticles(g, false);
     if (this.hatch) this.drawHatch(g, false);
@@ -374,7 +391,8 @@ class Game {
       if (t < f.born) return;
       const F = FOOD[f.key], age = t - f.born, s = ease.back(clamp(age / .45, 0, 1));
       let sc = s, alpha = 1, img = F.img;
-      if (f.eaten >= 0) { const e = t - f.eaten; img = F.eaten; sc = 1 + .12 * Math.sin(clamp(e / .18, 0, 1) * PI); alpha = 1 - clamp((e - .35) / .5, 0, 1); sc *= 1 - .25 * clamp((e - .35) / .5, 0, 1); }
+      if (f.cv) img = f.cv;
+      if (f.eaten >= 0) { const e = t - f.eaten; img = f.cv || F.eaten; sc = 1 + .12 * Math.sin(clamp(e / .18, 0, 1) * PI); alpha = 1 - clamp((e - .35) / .5, 0, 1); sc *= 1 - .25 * clamp((e - .35) / .5, 0, 1); }
       const bob = Math.sin(t * 2 + f.ph) * 1.6, rot = f.rot + Math.sin(t * 1.3 + f.ph) * .04;
       g.save(); g.globalAlpha = alpha; g.translate(f.x, f.y + bob); g.rotate(rot); g.scale(sc, sc);
       g.drawImage(img, -f.w / 2, -f.h / 2, f.w, f.h); g.restore();
@@ -392,7 +410,7 @@ class Game {
     });
   }
   drawCaterpillar(g, segs, alpha = 1, headPos) {
-    const R = this.R, list = SEG.list, S = (SEG.R + SEG.pad) * 2;
+    const fat = this.fat || 0, R = this.R * (1 + .22 * fat), list = SEG.list, S = (SEG.R + SEG.pad) * 2;
     g.save(); g.globalAlpha = alpha;
     for (let i = segs.length - 1; i >= 0; i--) {
       const s = segs[i], sc = s.r / SEG.R;
@@ -400,11 +418,11 @@ class Game {
       const nx = -Math.sin(s.a), ny = Math.cos(s.a), sg = ny >= 0 ? 1 : -1, fy = ny * sg;
       const onGround = s.ground !== undefined ? s.ground : fy > .3 && i % 2 === 0;
       if (onGround) for (const off of [-.28, .28]) {
-        const step = Math.sin(this.phase - i * .8 + 1.2 + off * 4), fx = nx * sg, len = s.r * (.9 - .05 * Math.max(0, step));
+        const step = Math.sin(this.phase - i * .8 + 1.2 + off * 4), fx = nx * sg, len = s.r * (.9 + .48 * fat - .05 * Math.max(0, step));
         g.save(); g.translate(s.x + fx * len + Math.cos(s.a) * s.r * (off + step * .06), s.y + fy * len + Math.sin(s.a) * s.r * (off + step * .06));
         g.rotate(Math.atan2(fy, fx) - PI / 2); g.scale(sc * .42, sc * .5); g.drawImage(SEG.foot, -7, -5, 14, 16); g.restore();
       }
-      g.save(); g.translate(s.x, s.y); g.rotate(s.a);
+      g.save(); g.translate(s.x, s.y); g.rotate(s.a); if (fat) g.scale(1 + .12 * fat, 1 + .5 * fat);
       g.drawImage(list[(i * 7 + 3) % list.length], -S / 2 * sc, -S / 2 * sc, S * sc, S * sc); g.restore();
     }
     const hero = this.mode === 'hero' && !headPos, h = headPos || (hero ? this.inchHead : this.at(this.headS)), d = this.hdir || 0;
