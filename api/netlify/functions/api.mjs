@@ -2,7 +2,7 @@
    Storage: Netlify Blobs (store "rishi"). Env var HOST_KEY = your private key for /api/host. */
 import { getStore } from '@netlify/blobs';
 
-const ORIGINS = ['https://vivekbydesign.github.io', 'http://localhost:8080', 'http://127.0.0.1:8080'];
+const ORIGINS = ['https://vivekbydesign.github.io', 'https://happybirthdayrishi.com', 'https://www.happybirthdayrishi.com', 'http://localhost:8080', 'http://127.0.0.1:8080'];
 const cors = req => { const o = req.headers.get('Origin'); return { 'Access-Control-Allow-Origin': ORIGINS.includes(o) ? o : ORIGINS[0], 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Vary': 'Origin' }; };
 const json = (req, body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...cors(req) } });
 const str = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, n);
