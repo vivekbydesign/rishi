@@ -322,9 +322,9 @@ class Game {
     if (!f.burst && t > 3.9) { f.burst = 1; this.confetti(f.cx, f.cy + 10, 70); this.hooks.onEmerge && this.hooks.onEmerge(); }
     if (t > 4.8 && !f.path) {
       this.layout(); const r = this.restPose(); f.rest = r; this.hooks.onFly && this.hooks.onFly();
-      f.path = [[f.cx, f.cy], [f.cx, f.cy], [this.W * .78, this.H * .3], [this.W * .22, this.H * .2], [r.x + 30, r.y - 40], [r.x, r.y], [r.x, r.y]];
+      f.path = [[f.cx, f.cy], [f.cx, f.cy], [this.W * .8, this.H * .32], [this.W * .2, this.H * .22], [this.W * .62, this.H * .06], [this.W * 1.35, -this.H * .2], [this.W * 1.35, -this.H * .2]];
     }
-    if (t > 8.4 && !f.done) { f.done = 1; this.setRest(); this.bf.burst = .4; this.hooks.onTransformDone && this.hooks.onTransformDone(); }
+    if (t > 8.3 && !f.done) { f.done = 1; this.buildHero(true); this.hooks.onTransformDone && this.hooks.onTransformDone(); }
   }
   confetti(x, y, n) {
     const tex = ['apple', 'orange', 'bfyellow', 'blue', 'bfpurple', 'bflime', 'pink', 'teal', 'strawberry'];
@@ -458,6 +458,8 @@ class Game {
     // 1. he glides, tail first, into a hanging pose under the twig (whole body, no break-up)
     const sz = Math.min(this.W * .32, 130) / co.h * 1.6, top = f.cy - 30, N = f.segs.length, rt = 19 * sz, y0 = top + 4 * sz, yH = top + 78 * sz;
     if (f.R0 === undefined) f.R0 = this.R;
+    const edge = t < 1.3 ? lerp(-26, 2, ease.out(clamp((t - .7) / .55, 0, 1))) : lerp(2, 112, ease.inOut(clamp((t - 1.35) / 1.3, 0, 1)));
+    let rot = 0; if (t > 2.6 && t < 3.8) { const w = (t - 2.6) / 1.2; rot = Math.sin(w * PI * 6) * .07 * Math.sin(w * PI); }
     if (t < 2.7) {
       const segs = f.segs.map((s0, k) => {
         const e = ease.inOut(clamp((t - .05 - (1 - k / N) * .45) / 1.05, 0, 1)), ty = yH - (k + 1) / N * (yH - y0 - rt * .3), tx = f.cx + Math.sin(k * .7) * 1.2 * sz;
@@ -465,12 +467,16 @@ class Game {
       });
       const eh = ease.inOut(clamp((t - .5) / 1.05, 0, 1));
       this.R = lerp(f.R0, rt * .95, eh);
-      this.drawCaterpillar(g, segs, 1, [lerp(f.head[0], f.cx, eh), lerp(f.head[1], yH + rt * .2, eh) - Math.sin(PI * eh) * 18]);
+      // only the part the silk hasn't reached yet stays visible, so nothing pokes out of the cocoon
+      g.save();
+      if (t > .7) { const m = new DOMMatrix().translate(f.cx, top - 18 * sz).rotate(rot * 180 / PI).translate(0, 18 * sz).scale(sz); const below = new Path2D(); below.moveTo(-400, -400); below.lineTo(400, -400); below.lineTo(400, 2000); below.lineTo(-400, 2000); below.closePath();
+        const wrap = new Path2D(); wrap.moveTo(-40, -30); wrap.lineTo(40, -30); for (let x = 40; x >= -40; x -= 4) wrap.lineTo(x, edge + Math.sin(x * .22 + t * 7) * 2.6); wrap.closePath();
+        const hide = new Path2D(); hide.addPath(wrap, m); const keep = new Path2D(); keep.addPath(below, new DOMMatrix()); keep.addPath(hide); g.clip(keep, 'evenodd'); }
+      this.drawCaterpillar(g, segs, 1 - clamp((t - 2.45) / .25, 0, 1), [lerp(f.head[0], f.cx, eh), lerp(f.head[1], yH + rt * .2, eh) - Math.sin(PI * eh) * 18]);
+      g.restore();
     }
     // 2. he spins his little house around himself: the cocoon wraps him from the twig down, sways, then splits
     if (t > .7 && t < 4.35) {
-      const edge = t < 1.3 ? lerp(-26, 2, ease.out(clamp((t - .7) / .55, 0, 1))) : lerp(2, 112, ease.inOut(clamp((t - 1.35) / 1.3, 0, 1)));
-      let rot = 0; if (t > 2.6 && t < 3.8) { const w = (t - 2.6) / 1.2; rot = Math.sin(w * PI * 6) * .07 * Math.sin(w * PI); }
       const out = clamp((t - 3.85) / .5, 0, 1), sc = sz * (1 + out * .12);
       g.save(); g.globalAlpha = 1 - out; g.translate(f.cx, top - 18 * sz); g.rotate(rot); g.translate(0, 18 * sz); g.scale(sc, sc);
       const clip = new Path2D(); clip.moveTo(-40, -30); clip.lineTo(40, -30);
@@ -486,10 +492,9 @@ class Game {
         const v = clamp((t - 4.8) / 3.5, 0, 1), e = ease.inOut(v), P = f.path, seg = P.length - 3, q = Math.min(seg - 1e-6, e * seg), i = Math.floor(q), l = q - i;
         const cr = (a, b, c, d) => .5 * (2 * b + (-a + c) * l + (2 * a - 5 * b + 4 * c - d) * l * l + (-a + 3 * b - 3 * c + d) * l * l * l);
         const nx = cr(P[i][0], P[i + 1][0], P[i + 2][0], P[i + 3][0]), ny = cr(P[i][1], P[i + 1][1], P[i + 2][1], P[i + 3][1]);
-        tilt = clamp((nx - (f.px ?? nx)) * .02, -.35, .35) + f.rest.tilt * e; f.px = nx;
-        x = nx; y = ny + Math.sin(v * PI * 6) * 8 * (1 - e); w = restW;
-        const fl = (t - 4.8) * TAU * 3.1 * (1 - .55 * e); flap = this.flapX(fl);
-        if (v > .94) flap = lerp(flap, 1, (v - .94) / .06);
+        tilt = clamp((nx - (f.px ?? nx)) * .02, -.35, .35); f.px = nx;
+        x = nx; y = ny + Math.sin(v * PI * 6) * 8; w = restW * (1 - .35 * e);
+        flap = this.flapX((t - 4.8) * TAU * 3.1);
       }
       CP.drawButterfly(g, x, y, w, flap, tilt);
     }
