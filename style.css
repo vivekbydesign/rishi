@@ -39,10 +39,11 @@ a{color:inherit}
 .deco{position:absolute;inset:0;pointer-events:none;transition:opacity .7s var(--ease-out),filter .7s var(--ease-out)}
 .sun{transition:width .9s var(--ease-out);position:absolute;left:-6cqw;top:calc(-1cqh + var(--safe-t));width:31cqw;transform-origin:50% 50%;animation:sunspin 60s linear infinite}
 @keyframes sunspin{to{transform:rotate(360deg)}}
-.branch{transition:width .9s var(--ease-out);position:absolute;right:-2cqw;top:calc(.2cqh + var(--safe-t));width:29cqw;transform-origin:95% 10%;animation:sway 6s ease-in-out infinite}
+.branch{transition:width .9s var(--ease-out);position:absolute;right:-2cqw;top:calc(.2cqh + var(--safe-t));width:29cqw;transform-origin:100% 72%;animation:sway 5s ease-in-out infinite}
 .playing .sun,.metamorph .sun{width:34cqw}
 .playing .branch,.metamorph .branch{width:38cqw}
-.playing .playing .playing @keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(-3deg)}}
+@keyframes sway{0%,100%{transform:rotate(0)}50%{transform:rotate(-1.5deg)}}
+@media (prefers-reduced-motion:reduce){.branch{animation:none}}
 .dots i{position:absolute;border-radius:50%;background-size:120px;box-shadow:0 1px 1.5px rgba(0,0,0,.12)}
 
 /* ---------- invite ---------- */
