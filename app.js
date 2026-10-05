@@ -86,7 +86,8 @@ const hooks = {
   onHatch() { tone(880, 0, .12, 'square', .05); tone(1320, .05, .25, 'sine', .07); if (navigator.vibrate) navigator.vibrate(18); banner('Pop!', 'out came a tiny caterpillar', 'apple'); },
   onBite() { munch(); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); tone(220, 0, .4, 'sine', .08); tone(196, .25, .5, 'sine', .08); },
-  onFinish(secs, bumps) { state.lastTime = secs; state.lastBumps = bumps; banner('Much better!', 'And now for a surprise…', 'leaf', true); },
+  onDecoy() { tone(240, 0, .3, 'sine', .08); tone(170, .18, .45, 'sine', .08); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
+  onFinish(secs, bumps, aches) { state.lastTime = secs; state.lastBumps = bumps; state.lastAches = aches || 0; banner('Much better!', 'And now for a surprise…', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },
   onEmerge() { fanfare(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
@@ -108,10 +109,10 @@ function goInvite() {
   if (game.mode === 'play' || game.mode === 'transform' || game.mode === 'hatch') game.buildHero(true);
 }
 async function results() {
-  const secs = state.lastTime, b = state.lastBumps || 0, r = await saveScoreAll(state.name || 'Guest', secs);
+  const secs = state.lastTime, b = state.lastBumps || 0, a = state.lastAches || 0, r = await saveScoreAll(state.name || 'Guest', secs);
   const t = $('toast'); t.textContent = '';
   const big = document.createElement('b'); big.textContent = fmt(secs) + 's';
-  const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`) + (b ? ` · ${b} bump${b > 1 ? 's' : ''} (+${b * 2}s)` : ' · no bumps');
+  const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`) + (b || a ? ` · ${[b ? plural(b, 'bump', 'bumps') : '', a ? plural(a, 'tummy ache', 'tummy aches') : ''].filter(Boolean).join(', ')} (+${b * 3 + a * 5}s)` : ' · no bumps');
   t.append(big, msg); t.classList.add('show'); clearTimeout(state.toastT); state.toastT = setTimeout(() => t.classList.remove('show'), 5200);
   $('playBtn').classList.add('again'); $('playLabel').textContent = 'Replay';
   flyLater();

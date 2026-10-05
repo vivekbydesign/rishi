@@ -47,12 +47,12 @@ a{color:inherit}
 
 /* ---------- invite ---------- */
 .invite{transform:none;position:absolute;inset:calc(var(--safe-t) + 2cqh) 5cqw calc(var(--safe-b) + 96px);display:flex;flex-direction:column;align-items:center;transition:opacity .7s var(--ease-out),transform .9s var(--ease-out)}
-.arch{width:min(70cqw,320px);height:auto;margin-top:5.2cqh;overflow:visible}
+.arch{width:min(70cqw,320px);height:auto;margin-top:.4cqh;overflow:visible}
 .arch text{font-family:var(--hand);font-size:20px;letter-spacing:.11em;text-transform:uppercase;fill:var(--ink)}
-.hero{position:relative;height:25cqh;width:100%;display:flex;justify-content:center;align-items:flex-end;margin-top:-.4cqh}
+.hero{position:relative;height:25cqh;width:100%;display:flex;justify-content:center;align-items:flex-end;margin-top:9cqh}
 .one{height:23cqh;width:auto;overflow:visible;filter:drop-shadow(0 2px 1.5px rgba(90,20,0,.2));margin-bottom:.5cqh}
 .one text{stroke:rgba(110,20,0,.12);stroke-width:3}
-.name{margin:1.6cqh 0 0;line-height:1}
+.name{margin:.2cqh 0 0;line-height:1}
 .letters{display:flex;gap:.4cqw}
 .letters span{font-family:var(--round);font-weight:700;font-size:min(17cqw,10.5cqh);line-height:.95;color:transparent;-webkit-background-clip:text;background-clip:text;background-size:160px;filter:drop-shadow(0 1.5px 1px rgba(0,0,0,.14));display:inline-block}
 .turning{font-family:var(--hand);font-size:min(6.6cqw,3.7cqh);letter-spacing:.14em;text-transform:uppercase;margin:.6cqh 0 0}
