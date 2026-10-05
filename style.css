@@ -144,6 +144,7 @@ a{color:inherit}
 .sheet h2{font-family:var(--round);font-weight:700;font-size:28px;line-height:1.1;letter-spacing:-.01em;margin:4px 0 8px;text-wrap:balance}
 .intro-cat{display:block;width:min(100%,300px);height:96px;margin:6px auto 2px}
 #introSheet h2,#introSheet .lede{text-align:center}
+.rules{font-family:var(--hand);font-size:17px;line-height:1.35;letter-spacing:.03em;color:var(--muted);text-align:center;margin:-8px auto 16px;max-width:30ch;text-wrap:balance}
 #introSheet h2 em{font-style:normal;color:var(--red)}
 .lede{font-family:var(--serif);font-size:17px;line-height:1.45;color:#3b3a33;margin:0 0 18px;text-wrap:pretty}
 .lede em{font-style:italic;color:var(--red)}

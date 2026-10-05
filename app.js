@@ -4,7 +4,7 @@
 const $ = id => document.getElementById(id);
 const card = $('card');
 card.classList.add('boot');
-const NAME_KEY = 'rishi1.name', SCORE_KEY = 'rishi1.points';
+const NAME_KEY = 'rishi1.name', SCORE_KEY = 'rishi1.times';
 const state = { name: localStorage.getItem(NAME_KEY) || '', lastMs: 0, muted: localStorage.getItem('rishi1.muted') === '1' };
 
 /* links */
@@ -29,14 +29,14 @@ setMute(state.muted);
 $('muteBtn').onclick = () => setMute(!state.muted);
 
 /* scores */
-const fmt = ms => (ms / 1000).toFixed(1);
-const readScores = () => { try { return (JSON.parse(localStorage.getItem(SCORE_KEY)) || []).filter(s => typeof s.pts === 'number'); } catch (e) { return []; } };
-const saveScore = (name, pts) => {
+const fmt = s => s.toFixed(1);
+const readScores = () => { try { return (JSON.parse(localStorage.getItem(SCORE_KEY)) || []).filter(s => typeof s.t === 'number'); } catch (e) { return []; } };
+const saveScore = (name, t) => {
   const list = readScores(), i = list.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
   let best = true;
-  if (i >= 0) { if (list[i].pts >= pts) best = false; else list[i] = { name, pts, at: Date.now() }; } else list.push({ name, pts, at: Date.now() });
-  list.sort((a, b) => b.pts - a.pts); localStorage.setItem(SCORE_KEY, JSON.stringify(list.slice(0, 50)));
-  if (window.SCORES_ENDPOINT) fetch(window.SCORES_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, pts }) }).catch(() => {});
+  if (i >= 0) { if (list[i].t <= t) best = false; else list[i] = { name, t, at: Date.now() }; } else list.push({ name, t, at: Date.now() });
+  list.sort((a, b) => a.t - b.t); localStorage.setItem(SCORE_KEY, JSON.stringify(list.slice(0, 50)));
+  if (window.SCORES_ENDPOINT) fetch(window.SCORES_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, t }) }).catch(() => {});
   return { best, rank: list.findIndex(s => s.name.toLowerCase() === name.toLowerCase()) + 1, total: list.length };
 };
 const loadRemote = async () => { if (!window.SCORES_ENDPOINT) return null; try { const r = await fetch(window.SCORES_ENDPOINT); return await r.json(); } catch (e) { return null; } };
@@ -48,7 +48,7 @@ const renderBoard = async () => {
     const li = document.createElement('li'); if (state.name && s.name.toLowerCase() === state.name.toLowerCase()) li.className = 'me';
     const rk = document.createElement('span'); rk.className = 'rk'; if (i < 3) { const im = document.createElement('img'); im.src = `assets/f_${MEDAL[i]}.png`; im.alt = '#' + (i + 1); rk.appendChild(im); } else rk.textContent = i + 1;
     const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name;
-    const tm = document.createElement('span'); tm.className = 'tm'; tm.textContent = s.pts.toLocaleString() + ' pts';
+    const tm = document.createElement('span'); tm.className = 'tm'; tm.textContent = fmt(s.t) + 's';
     li.append(rk, nm, tm); ol.appendChild(li);
   });
 };
@@ -80,14 +80,14 @@ const hooks = {
   onHatchStart() { banner('Shh…', 'a little egg lay on a leaf', 'plum', true); },
   onHatch() { tone(880, 0, .12, 'square', .05); tone(1320, .05, .25, 'sine', .07); if (navigator.vibrate) navigator.vibrate(18); banner('Pop!', 'out came a tiny caterpillar', 'apple'); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); tone(220, 0, .4, 'sine', .08); tone(196, .25, .5, 'sine', .08); },
-  onFinish(pts, bumps, bonus) { [...$('week').children].forEach(li => { li.classList.remove('now'); li.classList.add('done'); }); state.lastPts = pts; state.lastBumps = bumps; state.lastBonus = bonus; banner('Much better', 'Now he is big and fat', 'leaf', true); },
+  onFinish(secs, bumps) { [...$('week').children].forEach(li => { li.classList.remove('now'); li.classList.add('done'); }); state.lastTime = secs; state.lastBumps = bumps; banner('Much better', 'Now he is big and fat', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },
   onEmerge() { fanfare(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
 };
 
-const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = game.score().toLocaleString(); requestAnimationFrame(tick); };
+const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
   show(null); $('toast').classList.remove('show'); audio(); card.classList.add('playing');
@@ -103,10 +103,10 @@ function goInvite() {
   if (game.mode === 'play' || game.mode === 'transform' || game.mode === 'hatch') game.buildHero(true);
 }
 function results() {
-  const pts = state.lastPts, b = state.lastBumps || 0, bo = state.lastBonus || 0, r = saveScore(state.name || 'Guest', pts);
+  const secs = state.lastTime, b = state.lastBumps || 0, r = saveScore(state.name || 'Guest', secs);
   const t = $('toast'); t.textContent = '';
-  const big = document.createElement('b'); big.textContent = pts.toLocaleString() + ' pts';
-  const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Hungriest of all!' : `#${r.rank} of ${r.total}`) : `Best is still #${r.rank}`) + (bo ? ` · +${bo} speed bonus` : '') + (b ? '' : ' · no bumps');
+  const big = document.createElement('b'); big.textContent = fmt(secs) + 's';
+  const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`) + (b ? ` · ${b} bump${b > 1 ? 's' : ''} (+${b * 2}s)` : ' · no bumps');
   t.append(big, msg); t.classList.add('show'); clearTimeout(state.toastT); state.toastT = setTimeout(() => t.classList.remove('show'), 5200);
   $('playBtn').lastChild.nodeValue = 'Play again'; const ic = $('playBtn').querySelector('.btn-ic'); if (ic && ic.tagName === 'IMG') ic.outerHTML = '<svg class="btn-ic replay" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12a6.5 6.5 0 1 0 2-4.7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M4 3.8v5h5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   flyLater();
@@ -121,7 +121,7 @@ $('nameForm').onsubmit = e => { e.preventDefault(); const v = cleanName($('nameI
   if (!v) { $('nameErr').textContent = 'Type a name so we can put you on the scoreboard.'; $('nameInput').classList.add('bad'); $('nameInput').focus(); return; }
   state.name = v; localStorage.setItem(NAME_KEY, v); $('nameErr').textContent = ''; $('nameInput').classList.remove('bad'); $('nameInput').blur(); startGame(); };
 $('nameInput').oninput = () => { $('nameInput').classList.remove('bad'); $('nameErr').textContent = ''; };
-$('resNameForm').onsubmit = e => { e.preventDefault(); const v = cleanName($('resName').value); if (!v) { $('resName').focus(); return; } state.name = v; localStorage.setItem(NAME_KEY, v); const r = saveScore(v, state.lastPts); $('resNameForm').classList.add('hidden'); $('resRank').textContent = `Saved! You're #${r.rank} of ${r.total}.`; };
+$('resNameForm').onsubmit = e => { e.preventDefault(); const v = cleanName($('resName').value); if (!v) { $('resName').focus(); return; } state.name = v; localStorage.setItem(NAME_KEY, v); const r = saveScore(v, state.lastTime); $('resNameForm').classList.add('hidden'); $('resRank').textContent = `Saved! You're #${r.rank} of ${r.total}.`; };
 $('resInvite').onclick = () => { show(null); flyLater(); };
 $('resAgain').onclick = () => { game.buildHero(false); startGame(); };
 $('resScores').onclick = () => { renderBoard(); show('scoreSheet'); };
@@ -163,7 +163,7 @@ function introCat() {
 
 /* boot */
 (async () => {
-  if (/[?&]reset=1/.test(location.search)) { [NAME_KEY, SCORE_KEY, 'rishi1.scores', 'rishi1.muted'].forEach(k => localStorage.removeItem(k)); history.replaceState(null, '', location.pathname); location.reload(); return; }
+  if (/[?&]reset=1/.test(location.search)) { [NAME_KEY, SCORE_KEY, 'rishi1.points', 'rishi1.scores', 'rishi1.muted'].forEach(k => localStorage.removeItem(k)); history.replaceState(null, '', location.pathname); location.reload(); return; }
   try { await Promise.all([CP.loadAll(), document.fonts ? document.fonts.load('700 100px Arvo').then(() => document.fonts.ready) : 0]); }
   catch (e) { console.error(e); }
   CP.buildSegments(); CP.buildFoods(); CP.buildCocoon(); CP.buildEgg();

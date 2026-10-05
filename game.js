@@ -46,10 +46,13 @@ class Game {
     const hud = document.getElementById('hud');
     this.top = Math.max(110, (hud ? hud.offsetTop + hud.offsetHeight : 60) + 22);
   }
+  // a tap sets where he is heading; he keeps going there after the finger lifts
+  setTarget() { this.target = { x: clamp(this.input.x, -20, this.W + 20), y: clamp(this.input.y, this.top - 50, this.H), t: this.t }; }
+  bottom() { return this.H - 78; }
   bindInput() {
     const pos = e => { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; this.hooks.onTouch && this.hooks.onTouch(); });
-    this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); });
+    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; this.setTarget(); this.hooks.onTouch && this.hooks.onTouch(); });
+    this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); this.setTarget(); });
     const up = () => { this.input.down = false; };
     this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', up);
     this.keys = {};
@@ -127,7 +130,7 @@ class Game {
     const segs = this.inchSegs();
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
-    this.dayI = -1; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.points = 0; this.bonus = 0; this.bumps = 0; this.safeUntil = 0;
+    this.dayI = -1; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.safeUntil = 0; this.target = null;
     this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {};
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
@@ -169,7 +172,7 @@ class Game {
     this.hooks.onDay && this.hooks.onDay(this.dayI, d);
   }
   spawn(keys) {
-    const m = 34 * this.fs, top = this.top + 20, bot = this.H - m - 96, r = this.rng, head = this.at(this.headS);
+    const m = 56 * this.fs, top = this.top + 44, bot = this.H - 150, r = this.rng, head = this.at(this.headS);
     const placed = [];
     keys.forEach((key, i) => {
       let best = null, bestD = -1;
@@ -187,8 +190,7 @@ class Game {
     });
   }
   eat(f) {
-    f.eaten = this.t; this.eaten++; this.n++; this.chomp = 1; this.points += 100;
-    this.particles.push({ x: f.x, y: f.y - 18, vx: 0, vy: -46, r: 0, txt: '+100', good: 1, life: .9, age: 0, g: 0, drag: .4 });
+    f.eaten = this.t; this.eaten++; this.n++; this.chomp = 1;
     const col = FOOD[f.key].col;
     for (let i = 0; i < 9; i++) { const a = this.rng() * TAU, v = 50 + this.rng() * 90; this.particles.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, r: 2 + this.rng() * 3, col, life: .55 + this.rng() * .3, age: 0, g: 260 }); }
     if (this.pending && this.pending.length) this.spawnAt = this.t + .28;
@@ -196,20 +198,22 @@ class Game {
     this.hooks.onEat && this.hooks.onEat(f.key, left, this.dayI);
     if (left === 0) {
       if (this.dayI === 5) { this.queue = 2.2; this.ache = this.t; this.hooks.onAche && this.hooks.onAche(); }
-      else if (this.dayI === 6) { this.timing = false; this.bonus = Math.max(0, Math.round(90 - this.elapsed)) * 10; this.points += this.bonus; this.hooks.onFinish && this.hooks.onFinish(this.points, this.bumps, this.bonus); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
+      else if (this.dayI === 6) { this.timing = false; this.hooks.onFinish && this.hooks.onFinish(this.score(), this.bumps); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
       else this.queue = .75;
     }
   }
   steer(dt) {
     const head = this.at(this.headS); let want = null;
-    if (this.input.down) want = [this.input.x, this.input.y];
-    else if (Object.keys(this.keys).length) { const k = this.keys; const kx = (k.R ? 1 : 0) - (k.L ? 1 : 0), ky = (k.D ? 1 : 0) - (k.U ? 1 : 0); if (kx || ky) want = [head[0] + kx * 200, head[1] + ky * 200]; }
+    if (this.target) { want = [this.target.x, this.target.y]; if (!this.input.down && Math.hypot(want[0] - head[0], want[1] - head[1]) < this.R * 1.2) { this.target = null; want = null; } }
+    else if (Object.keys(this.keys).length) { const k = this.keys; const kx = (k.R ? 1 : 0) - (k.L ? 1 : 0), ky = (k.D ? 1 : 0) - (k.U ? 1 : 0); if (kx || ky) { this.target = null; want = [head[0] + kx * 200, head[1] + ky * 200]; } }
     else if (this.auto) { let best = null, bd = 1e9; this.foods.forEach(f => { if (f.eaten >= 0) return; const d = Math.hypot(f.x - head[0], f.y - head[1]); if (d < bd) { bd = d; best = f; } }); if (best) want = [best.x, best.y]; }
-    let turn = 4.4;
+    let turn = 7.5;
+    // a gentle pull toward food that is nearly in his path
+    if (!this.auto) this.foods.forEach(f => { if (f.eaten >= 0 || this.t < f.born) return; const dx = f.x - head[0], dy = f.y - head[1], d = Math.hypot(dx, dy), da = angDiff(this.dir, Math.atan2(dy, dx)); if (d < 95 * this.fs && Math.abs(da) < .9) this.dir += clamp(da, -2.4 * dt, 2.4 * dt); });
+    // with no tap to follow he turns away from the edges; steering into a wall still bumps
+    if (!want && !this.auto) { const look = this.R * 4 + 80 * this.fs, lx = head[0] + Math.cos(this.dir) * look, ly = head[1] + Math.sin(this.dir) * look;
+      if (lx < 0 || lx > this.W || ly < this.top - 34 || ly > this.H - 34) { const c = Math.atan2(this.H * .5 - head[1], this.W / 2 - head[0]); this.dir += clamp(angDiff(this.dir, c), -5 * dt, 5 * dt); } }
     if (want) { const dx = want[0] - head[0], dy = want[1] - head[1]; if (Math.hypot(dx, dy) > this.R * .8) this.dir += clamp(angDiff(this.dir, Math.atan2(dy, dx)), -turn * dt, turn * dt); }
-    // keep inside the page
-    const look = this.R * 3.2, lx = head[0] + Math.cos(this.dir) * look, ly = head[1] + Math.sin(this.dir) * look, m = this.R + 8;
-    if (lx < m || lx > this.W - m || ly < this.top || ly > this.H - m) { const c = Math.atan2(this.H * .55 - head[1], this.W / 2 - head[0]); this.dir += clamp(angDiff(this.dir, c), -turn * 1.3 * dt, turn * 1.3 * dt); }
   }
 
   /* ---------- metamorphosis ---------- */
@@ -245,15 +249,16 @@ class Game {
       if (this.spawnAt && t > this.spawnAt) { this.spawnAt = 0; this.spawn([this.pending.shift()]); this.hooks.onSpawn && this.hooks.onSpawn(); }
       if (this.timing) this.elapsed += dt;
       const aching = this.ache && t - this.ache < 2;
-      this.speed = 128 * this.fs * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
+      this.speed = 180 * this.fs * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
       this.steer(dt);
       if (aching) this.dir += Math.sin(t * 9) * dt * 2;
       const h = this.at(this.headS); this.push(h[0] + Math.cos(this.dir) * this.speed * dt, h[1] + Math.sin(this.dir) * this.speed * dt); this.headS = this.cum[this.cum.length - 1];
       this.phase += this.speed * dt / (this.R * 2.4) * TAU;
       const hh = this.at(this.headS);
+      this.checkWall(hh);
       if (this.timing && t > this.safeUntil) this.checkBump(hh);
       this.near = 0;
-      this.foods.forEach(f => { if (f.eaten >= 0 || t < f.born) return; const d = Math.hypot(f.x - hh[0], f.y - hh[1]); if (d < 70) this.near = 1; if (d < this.R * 1.3 + 16 * this.fs) this.eat(f); });
+      this.foods.forEach(f => { if (f.eaten >= 0 || t < f.born) return; const d = Math.hypot(f.x - hh[0], f.y - hh[1]); if (d < 70) this.near = 1; if (d < this.R * 1.5 + 26 * this.fs) this.eat(f); });
       this.foods = this.foods.filter(f => f.eaten < 0 || t - f.eaten < .9);
     } else if (this.mode === 'transform') this.stepTransform(dt);
     else if (this.mode === 'rest') this.stepButterfly(dt);
@@ -310,6 +315,9 @@ class Game {
   /* ---------- drawing ---------- */
   draw() {
     const g = this.g; g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0, 0, this.W, this.H);
+    if (this.mode === 'play' && this.target) { const k = clamp((this.t - this.target.t) / .35, 0, 1), tg = this.target;
+      g.save(); g.globalAlpha = .55 * (1 - .4 * k); g.strokeStyle = '#2e8b3a'; g.lineWidth = 2.5; g.beginPath(); g.arc(tg.x, tg.y, 10 + 8 * ease.out(k), 0, TAU); g.stroke();
+      g.fillStyle = '#2e8b3a'; g.beginPath(); g.arc(tg.x, tg.y, 3, 0, TAU); g.fill(); g.restore(); }
     if (this.mode === 'play' || this.mode === 'transform') this.drawFoods(g);
     this.drawParticles(g, false);
     if (this.hatch) this.drawHatch(g, false);
@@ -327,18 +335,31 @@ class Game {
     return [cr(P[i][0], P[i + 1][0], P[i + 2][0], P[i + 3][0]), cr(P[i][1], P[i + 1][1], P[i + 2][1], P[i + 3][1])];
   }
   taper(k, N = this.n) { return [.8, .88, .95][k - (N - 3)] || 1; }
-  score() { return this.points; }
+  score() { return this.elapsed + this.penalty; }
   // bumping into his own body costs time instead of ending the game
   checkBump(h) {
     const segs = this.segPositions();
     for (let i = 4; i < segs.length; i++) {
       const sg = segs[i]; if (Math.hypot(sg.x - h[0], sg.y - h[1]) > this.R * 1.15) continue;
-      this.bumps++; this.points = Math.max(0, this.points - 50); this.safeUntil = this.t + 1.2; this.wig = 1;
+      this.bumps++; this.penalty += 2; this.safeUntil = this.t + 1.2; this.wig = 1;
       this.dir = Math.atan2(h[1] - sg.y, h[0] - sg.x);
-      this.particles.push({ x: h[0], y: h[1] - this.R * 2, vx: 0, vy: -40, r: 0, txt: '−50', life: 1.1, age: 0, g: 0, drag: .4 });
-      this.hooks.onBump && this.hooks.onBump(this.bumps);
+      this.particles.push({ x: h[0], y: h[1] - this.R * 2, vx: 0, vy: -40, r: 0, txt: '+2s', life: 1.1, age: 0, g: 0, drag: .4 });
+      this.hooks.onBump && this.hooks.onBump(this.bumps, 'self');
       return;
     }
+  }
+  // bumping the edge turns him back and costs 2 seconds
+  checkWall(h) {
+    const m = this.R * .5, x0 = m, x1 = this.W - m, y0 = this.top - 34, y1 = this.H - 34;
+    if (h[0] > x0 && h[0] < x1 && h[1] > y0 && h[1] < y1) return;
+    let cx = Math.cos(this.dir), cy = Math.sin(this.dir);
+    if ((h[0] <= x0 && cx < 0) || (h[0] >= x1 && cx > 0)) cx = -cx;
+    if ((h[1] <= y0 && cy < 0) || (h[1] >= y1 && cy > 0)) cy = -cy;
+    this.dir = Math.atan2(cy, cx); this.target = null;
+    if (!this.timing || this.t < this.safeUntil) return;
+    this.bumps++; this.penalty += 2; this.safeUntil = this.t + 1.2; this.wig = 1;
+    this.particles.push({ x: clamp(h[0], 30, this.W - 30), y: clamp(h[1] + (cy > 0 ? 30 : -30), this.top, this.H - 90), vx: 0, vy: -40, r: 0, txt: '+2s', life: 1.1, age: 0, g: 0, drag: .4 });
+    this.hooks.onBump && this.hooks.onBump(this.bumps, 'wall');
   }
   flyAway() {
     if (this.mode !== 'rest') return;

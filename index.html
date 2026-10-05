@@ -53,7 +53,7 @@
 
     <header class="hud" id="hud" aria-label="Game status">
       <div class="daypill"><span class="dayname" id="dayName">Monday</span><span class="dayfood" id="dayFood"></span></div>
-      <span class="timer" id="timer">0<small>pts</small></span>
+      <span class="timer" id="timer">0.0<small>s</small></span>
       <ol class="week" id="week" aria-label="Days fed"><li>M</li><li>T</li><li>W</li><li>T</li><li>F</li><li>S</li><li class="wk-sun">S</li></ol>
     </header>
     <div class="ctrl" id="ctrl">
@@ -66,7 +66,7 @@
 
     <div class="banner" id="banner" aria-live="polite"><span class="b-day" id="bDay"></span><span class="b-what" id="bWhat"></span></div>
     <p class="goal" id="goal"><span>Eat all the food to get</span> <b>Rishi’s invite</b></p>
-    <div class="coach" id="coach"><span class="ring"></span><span class="coach-t">Touch where you want him to crawl</span></div>
+    <div class="coach" id="coach"><span class="ring"></span><span class="coach-t">Tap where you want him to go</span></div>
 
     <div class="toast" id="toast" role="status"></div>
     <div class="scrim" id="scrim"></div>
@@ -76,6 +76,7 @@
       <canvas class="intro-cat" id="introCat" aria-hidden="true"></canvas>
       <h2 id="introTitle">Rishi is a <em>very</em> hungry caterpillar</h2>
       <p class="lede">Eat all the food to get invited to his birthday!</p>
+      <p class="rules">Tap where he should go. Fastest time wins. Bumping a wall or himself adds 2 seconds.</p>
       <form id="nameForm" novalidate>
         <label for="nameInput">Your name</label>
         <input id="nameInput" name="name" autocomplete="given-name" maxlength="20" placeholder="e.g. Auntie Priya" enterkeyhint="go">
@@ -103,7 +104,7 @@
     <section class="sheet tall" id="scoreSheet" role="dialog" aria-labelledby="scTitle">
       <div class="grip"></div>
       <div class="sc-head">
-        <h2 id="scTitle">Hungriest caterpillars</h2>
+        <h2 id="scTitle">Fastest caterpillars</h2>
         <button class="icon-btn" id="scClose" aria-label="Back to the invite"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
       </div>
       <p class="sc-sub" id="scSub">Fastest to eat through the whole week</p>
