@@ -266,3 +266,17 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .intro-open .scrim{opacity:0}
 #scoreSheet{top:25%}
 .sheet.dragging{transition:none}
+.hud .timer{display:flex;align-items:center;justify-content:center;height:44px;padding:0 14px;border-radius:22px;background:#fff;box-shadow:0 0 0 2px var(--ink) inset;min-width:68px}
+/* 1 on top, then "join us to celebrate / our very hungry caterpillar / RISHI" reads as one line */
+.hero{margin-top:auto;height:31cqh}
+.hero .one{height:26cqh}
+.arch.arch-top{margin-top:1.8cqh;width:min(74cqw,330px)}
+.arch-top + .sr + .arch{margin-top:.2cqh}
+/* sent RSVP: one tappable bubble, tap to edit */
+.rsvp-done{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;height:56px;min-height:0;padding:0 14px 0 12px;border-radius:28px;background:#fff;box-shadow:0 0 0 1.5px var(--ink) inset;cursor:pointer;text-align:left;transition:transform .2s var(--ease-out)}
+.rsvp-done:active{transform:scale(.97)}
+.rd-t{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.rsvp-done .rd-h,.rsvp-done .rd-s{display:block;overflow:hidden;text-overflow:ellipsis}
+.rsvp-done .rd-h{color:var(--green)}
+.rsvp-done.no .rd-h{color:var(--red)}
+.rd-edit{flex:none;width:20px;height:20px;color:var(--ink);opacity:.7}
