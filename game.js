@@ -77,16 +77,16 @@ class Game {
   /* ---------- hero: inchworm crawl along the foot of the "1", passing behind it ---------- */
   buildHero(entrance = true) {
     this.layout();
-    const g = this.glyph, R = clamp(g.h * .1, 12, 22); this.R = R;
-    const n = 14, L = R * .9 + (n - 1) * R, base = g.y + g.h - R * .78, A = L - R * 3.05, restRatio = .34;
+    const g = this.glyph, R = clamp(g.h * (CP.Rk || .115), 12, 26); this.R = R;
+    const n = CP.nSeg || 15, L = R * .9 + (n - 1) * R, base = g.y + g.h - R * .78, A = L - R * (3.05 + (CP.nb ?? 1.4)), restRatio = CP.restRatio || .42;
     // resting pose from the invite art: arch centred on the stem of the "1", tail and head on the ground either side
-    const stemX = g.x + g.w * (CP.oneStem || .55), headX = stemX + restRatio * A / 2 + R * 2.55;
+    const stemX = g.x + g.w * (CP.oneStem || .55), headX = stemX + restRatio * A / 2 + R * (CP.headOff ?? 1.9);
     this.n = this.nShow = n;
     const pts = []; for (let x = -2000; x <= headX; x += 4) pts.push([x, base]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
     const tail0 = entrance ? -L - 40 : headX - L, dist = headX - L - tail0, cycles = entrance ? Math.max(3, Math.round(dist / (L * .5))) : 0;
     const D = cycles ? dist / cycles : 0, S = D || L * .5;
-    this.inch = { t: entrance ? 0 : 99, L, base, headX, tail0, cycles, D, S, cyc: .95, gRest: (1 - restRatio) * A / S, neckRest: .3 };
+    this.inch = { t: entrance ? 0 : 99, L, base, headX, tail0, cycles, D, S, cyc: .95, gRest: (1 - restRatio) * A / S, neckRest: CP.neckRest ?? 1.25 };
     this.hero = { t: 0 }; this.mode = 'hero'; this.bf = null; this.foods = []; this.speed = 0; this.wig = 0; this.fat = 0; this.fatOn = 0;
   }
   // one inch cycle, read from the film: head plants, tail pulls up into a tall slinky loop, short hold, head reaches and the loop rolls out flat
@@ -100,10 +100,10 @@ class Game {
       return { g: 1 - e, anchor: 'tail', ax: H0 - I.L + I.D, lean: .34 * (1 - e) - .5 * w, neck: .22 * w, tilt: .14 * (1 - e) - .22 * w };
     }
     const s = ease.inOut(clamp((I.t - T) / 1.1, 0, 1)), br = Math.sin(this.t * 1.3) * .03 * s;
-    return { g: I.gRest * (s + br), anchor: 'head', ax: I.headX, lean: 0, neck: I.neckRest * s, tilt: .1 * s };
+    return { g: I.gRest * (s + br), anchor: 'head', ax: I.headX, lean: 0, neck: I.neckRest * s, nb: (CP.nb ?? 1.4) * s, tilt: (CP.rTilt ?? .1) * s };
   }
   inchSegs() {
-    const I = this.inch, st = this.inchState(), R = this.R, L = I.L, a = R * .45, b = R * 2.6, A = L - a - b;
+    const I = this.inch, st = this.inchState(), R = this.R, L = I.L, a = R * .45, b = R * (2.6 + (st.nb || 0)), A = L - a - b;
     const ratio = clamp((A - st.g * I.S) / A, .06, 1);
     // the arch's tangent angle is -α·sin(2πu): its chord/length is J0(α), so solve α for the chord we need (keeps body length constant)
     const J = al => { let m = 0; for (let i = 0; i < 24; i++) m += Math.cos(al * Math.sin(TAU * (i + .5) / 24)); return m / 24; };
