@@ -175,7 +175,6 @@ class Game {
       let best = null, bestD = -1;
       for (let k = 0; k < 160; k++) {
         const x = m + r() * (this.W - 2 * m), y = top + r() * (bot - top);
-        if ((x < this.W * .24 && y > this.H * .46 && y < this.H * .7) || (x > this.W * .76 && y > this.H * .64 && y < this.H * .88)) continue;
         const dh = Math.hypot(x - head[0], y - head[1]);
         let dmin = Infinity; placed.concat(this.foods).forEach(f => { dmin = Math.min(dmin, Math.hypot(x - f.x, y - f.y)); });
         const score = Math.min(dmin, 160) + (dh > 100 ? 40 : -200);
