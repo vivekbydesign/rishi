@@ -143,16 +143,16 @@ class Game {
   restSegs() {
     const g = this.glyph, h = g.h, R = this.R, cx = g.x + g.w * (CP.oneStem || .55), by = g.y + g.h, br = Math.sin(this.t * 1.3) * .006;
     // centre line in glyph-height units, tail → head (x right, y up)
-    const C = [[-.42, .09], [-.36, .25], [-.24, .42 + br], [-.08, .5 + br], [.08, .48 + br], [.2, .36], [.28, .2], [.36, .12], [.44, .17], [.5, .28]].map(([x, y]) => [cx + x * h, by - y * h]);
+    const C = [[-.42, .09], [-.36, .25], [-.24, .42 + br], [-.08, .5 + br], [.08, .48 + br], [.2, .36], [.28, .2], [.36, .12], [.44, .15], [.51, .22]].map(([x, y]) => [cx + x * h, by - y * h]);
     const pts = []; for (let i = 0; i < C.length - 1; i++) { const p0 = C[Math.max(0, i - 1)], p1 = C[i], p2 = C[i + 1], p3 = C[Math.min(C.length - 1, i + 2)];
       for (let j = 0; j < 12; j++) { const t = j / 12, t2 = t * t, t3 = t2 * t; pts.push([0, 1].map(d => .5 * (2 * p1[d] + (-p0[d] + p2[d]) * t + (2 * p0[d] - 5 * p1[d] + 4 * p2[d] - p3[d]) * t2 + (-p0[d] + 3 * p1[d] - 3 * p2[d] + p3[d]) * t3))); } }
     pts.push(C[C.length - 1]);
     const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
     const Lp = cum[cum.length - 1], at = sv => { sv = clamp(sv, 0, Lp); let i = 0; while (i < cum.length - 2 && cum[i + 1] < sv) i++; const f = (sv - cum[i]) / ((cum[i + 1] - cum[i]) || 1), A = pts[i], B = pts[i + 1]; return [lerp(A[0], B[0], f), lerp(A[1], B[1], f), Math.atan2(B[1] - A[1], B[0] - A[0])]; };
     // spread the segments evenly along the line so the body always fills it, head at the end
-    const gap = (Lp - R * .9) / (this.n - 1), segs = [];
-    for (let k = 0; k < this.n; k++) { const [x, y, a] = at(Lp - R * .9 - k * gap); segs.push({ x, y, a, ground: y > by - R * 1.25 && Math.abs(Math.cos(a)) > .6 }); }
-    return { segs, head: [C[C.length - 1][0], C[C.length - 1][1] - R * .15] };
+    const gap = (Lp - R * .72) / (this.n - 1), segs = [];
+    for (let k = 0; k < this.n; k++) { const [x, y, a] = at(Lp - R * .72 - k * gap); segs.push({ x, y, a, ground: y > by - R * 1.25 && Math.abs(Math.cos(a)) > .6 }); }
+    return { segs, head: [C[C.length - 1][0], C[C.length - 1][1] - R * .05] };
   }
 
   /* ---------- play ---------- */

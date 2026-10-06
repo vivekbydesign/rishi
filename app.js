@@ -10,8 +10,9 @@ const state = { name: localStorage.getItem(NAME_KEY) || '', lastMs: 0, muted: lo
 /* links */
 const MAP = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('2459 NE Daphne St, Issaquah, WA');
 $('mapLink').href = MAP; $('mapLink2').href = MAP;
-const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Rishi//Invite//EN', 'BEGIN:VEVENT', 'UID:rishi-first-birthday-20261122@invite', 'DTSTAMP:20260101T000000Z', 'DTSTART:20261122T190000Z', 'DTEND:20261122T210000Z', "SUMMARY:Rishi's first birthday", 'LOCATION:2459 NE Daphne St\\, Issaquah\\, WA', 'DESCRIPTION:One very hungry little caterpillar is turning one!', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-$('calLink').href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+// a real .ics file opens the Add to Calendar sheet on iPhone; Android goes straight to Google Calendar
+if (/android/i.test(navigator.userAgent)) { const cl = $('calLink'); cl.removeAttribute('download'); cl.target = '_blank'; cl.rel = 'noopener'; cl.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&' + new URLSearchParams({ text: "Rishi's first birthday", dates: '20261122T190000Z/20261122T210000Z', location: '2459 NE Daphne St, Issaquah, WA', details: 'One very hungry little caterpillar is turning one! https://happybirthdayrishi.com' }); }
+else { $('calLink').removeAttribute('download'); $('calLink').href = 'rishi.ics'; }
 
 /* RISHI letters in painted paper */
 const LT = [['R', 'green'], ['I', 'orange'], ['S', 'redone'], ['H', 'violet'], ['I', 'blue']];
@@ -235,7 +236,7 @@ const DOT_TEX = ['violet', 'blue', 'red', 'green', 'orange', 'yellow', 'teal'];
 function scatterDots() {
   const box = $('dots'), sh = $('introSheet'); box.textContent = '';
   const R = sh.getBoundingClientRect(); if (!R.width) return;
-  const pad = 12, keep = [...sh.children].filter(el => el !== box && el.offsetParent).map(el => el.getBoundingClientRect());
+  const pad = 30, keep = [...sh.children].filter(el => el !== box && el.offsetParent).map(el => el.getBoundingClientRect());
   ['.deco .sun', '.deco .branch'].forEach(q => { const el = card.querySelector(q); if (el) keep.push(el.getBoundingClientRect()); });
   const hit = (x, y, r) => keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top);
   const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);

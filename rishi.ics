@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Rishi//Invite//EN
+BEGIN:VEVENT
+UID:rishi-first-birthday-20261122@invite
+DTSTAMP:20260101T000000Z
+DTSTART:20261122T190000Z
+DTEND:20261122T210000Z
+SUMMARY:Rishi's first birthday
+LOCATION:2459 NE Daphne St\, Issaquah\, WA
+DESCRIPTION:One very hungry little caterpillar is turning one!
+END:VEVENT
+END:VCALENDAR
