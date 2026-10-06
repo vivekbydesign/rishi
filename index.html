@@ -80,19 +80,15 @@
     <p class="goal" id="goal"><span>Eat all the food to get</span> <b>Rishi’s invite</b></p>
     <div class="coach" id="coach"><span class="ring"></span><span class="coach-t">Swipe to turn · avoid the edges</span></div>
 
+    <p class="sweet-note" id="sweetNote" role="status">Oops! Sweets are only for weekends</p>
     <div class="toast" id="toast" role="status"></div>
     <div class="scrim" id="scrim"></div>
 
     <section class="sheet open" id="introSheet" role="dialog" aria-labelledby="introTitle">
-      <div class="grip"></div>
+      <div class="dots" id="dots" aria-hidden="true"></div>
       <canvas class="intro-cat" id="introCat" aria-hidden="true"></canvas>
       <h2 id="introTitle">Rishi is a <em>very</em> hungry caterpillar</h2>
-      <ul class="rules">
-        <li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14h26M27 8l6 6-6 6"/><path d="M33 26H7M13 20l-6 6 6 6"/></svg><span>Swipe to turn</span></li>
-        <li><img src="assets/f_apple.png" alt=""><span>Eat each day’s food</span></li>
-        <li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="30" height="30" rx="4" stroke-dasharray="4 3.2"/><path d="M15 15l10 10M25 15L15 25"/></svg><span>Don’t touch the edges</span></li>
-      </ul>
-      <p class="lede rules-win">Fastest caterpillar wins!</p>
+      <p class="lede rules-txt"><span>Swipe to turn and eat each day’s food.</span> <span>Don’t touch the edges. Fastest caterpillar wins!</span></p>
       <form id="nameForm" novalidate>
         <label for="nameInput">Your name</label>
         <input id="nameInput" name="name" autocomplete="given-name" maxlength="20" placeholder="Enter your name" enterkeyhint="go">
@@ -133,8 +129,8 @@
         <div class="row"><input id="resName" maxlength="20" placeholder="Your name" autocomplete="given-name"><button class="btn primary" type="submit">Save</button></div>
       </form>
       <div class="actions">
-        <button class="btn primary wide" id="resInvite">See the invite</button>
-        <div class="row2"><button class="btn ghost" id="resAgain">Play again</button><button class="btn ghost" id="resScores">Scores</button></div>
+        <button class="btn primary wide" id="resInvite"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20.5h17"/><rect x="5" y="12" width="14" height="8.5" rx="1.6"/><path d="M5 15.6c1.2.9 2.4.9 3.5 0s2.3-.9 3.5 0 2.3.9 3.5 0 2.3-.9 3.5 0"/><path d="M12 12V8.6"/><path d="M12 4c1 1.1 1 2.5 0 3.1-1-.6-1-2 0-3.1z" fill="currentColor"/></svg>See the invite</button>
+        <div class="row2"><button class="btn ghost" id="resAgain"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="4.6" cy="16.6" r="2.3"/><circle cx="8.9" cy="17.4" r="2.5"/><circle cx="13.4" cy="16.9" r="2.6"/><circle cx="18" cy="13.4" r="3.2"/><path d="M17 10.4 15.9 6.6M19.4 10.5l1.4-3.6"/><circle cx="15.9" cy="6.3" r=".5" fill="currentColor"/><circle cx="20.9" cy="6.6" r=".5" fill="currentColor"/><circle cx="18.9" cy="12.9" r=".7" fill="currentColor" stroke="none"/></svg>Play again</button><button class="btn ghost" id="resScores">Scores</button></div>
       </div>
     </section>
 
@@ -143,8 +139,8 @@
       <h2 id="overTitle">Oops!</h2>
       <p class="over-note">Don’t worry, you’re still invited! Finish all seven days to get on the scoreboard.</p>
       <div class="actions">
-        <button class="btn primary wide" id="overAgain"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>Try again</button>
-        <button class="btn ghost wide" id="overInvite"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6.5L20.5 7"/></svg>See the invite</button>
+        <button class="btn primary wide" id="overAgain"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="4.6" cy="16.6" r="2.3"/><circle cx="8.9" cy="17.4" r="2.5"/><circle cx="13.4" cy="16.9" r="2.6"/><circle cx="18" cy="13.4" r="3.2"/><path d="M17 10.4 15.9 6.6M19.4 10.5l1.4-3.6"/><circle cx="15.9" cy="6.3" r=".5" fill="currentColor"/><circle cx="20.9" cy="6.6" r=".5" fill="currentColor"/><circle cx="18.9" cy="12.9" r=".7" fill="currentColor" stroke="none"/></svg>Try again</button>
+        <button class="btn ghost wide" id="overInvite"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20.5h17"/><rect x="5" y="12" width="14" height="8.5" rx="1.6"/><path d="M5 15.6c1.2.9 2.4.9 3.5 0s2.3-.9 3.5 0 2.3.9 3.5 0 2.3-.9 3.5 0"/><path d="M12 12V8.6"/><path d="M12 4c1 1.1 1 2.5 0 3.1-1-.6-1-2 0-3.1z" fill="currentColor"/></svg>See the invite</button>
       </div>
     </section>
 

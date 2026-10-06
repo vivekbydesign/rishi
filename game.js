@@ -217,7 +217,10 @@ class Game {
     const ang = n === 1 ? 0 : this.dayI === 5 ? (r() - .5) * .12 : [0, 0, PI / 2, .5, -.5][Math.floor(r() * 5)];
     const ca = Math.cos(ang), sa = Math.sin(ang), step = (i, j) => (Math.abs(ca) * (ws[i] + ws[j]) / 2 + Math.abs(sa) * (hs[i] + hs[j]) / 2) * (this.dayI === 5 ? .74 : .84);
     const offs = [0]; for (let i = 1; i < n; i++) offs.push(offs[i - 1] + step(i - 1, i)); const mid = offs[n - 1] / 2;
-    const pts = offs.map(o => [(o - mid) * ca, (o - mid) * sa]);
+    let pts = offs.map(o => [(o - mid) * ca, (o - mid) * sa]);
+    // three or more usually sit in a little heap, not always a line
+    if (n >= 3 && r() < .7) { const side = (ws.reduce((a, b) => a + b) + hs.reduce((a, b) => a + b)) / (2 * n) * .82, rad = side / Math.sqrt(3) * (n > 3 ? 1.25 : 1), a0 = r() * TAU;
+      pts = keys.map((_, i) => [Math.cos(a0 + i / n * TAU) * rad, Math.sin(a0 + i / n * TAU) * rad * .92]); }
     const ex = Math.max(...pts.map((p, i) => Math.abs(p[0]) + ws[i] / 2)) + 8, ey = Math.max(...pts.map((p, i) => Math.abs(p[1]) + hs[i] / 2)) + 8;
     const x0 = Math.min(ex, this.W / 2), x1 = Math.max(this.W - ex, this.W / 2), y0 = Math.min(top + ey * .5, (top + bot) / 2), y1 = Math.max(bot - ey * .3, (top + bot) / 2);
     const away = this.foods.filter(f => f.eaten < 0);
@@ -235,6 +238,21 @@ class Game {
       const food = { key, x: best[0] + pts[i][0], y: best[1] + pts[i][1], w: f.w * sc, h: f.h * sc, born: this.t + i * .09, rot: (r() - .5) * (n > 1 ? .18 : .3), ph: r() * TAU, eaten: -1, bites: key === 'leaf' ? 4 : 1, biteAt: 0, holes: [], sc };
       this.foods.push(food);
     });
+    // Tuesday to Friday a stray Saturday sweet sometimes sneaks in; easy to steer around
+    if (this.dayI >= 1 && this.dayI <= 4 && !this.foods.some(o => o.decoy && o.eaten < 0 && !o.gone) && r() < .5) this.spawnSweet(head);
+  }
+  spawnSweet(head) {
+    const r = this.rng, key = ['cake', 'icecream', 'lollipop'][Math.floor(r() * 3)], F = FOOD[key], sc = this.fs * .9, w = F.w * sc, h = F.h * sc;
+    const live = this.foods.filter(o => o.eaten < 0 && !o.decoy), top = this.top + 44 + h / 2, bot = this.H - 150 - h / 2;
+    const segD = (px, py, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy || 1, k = clamp(((px - a[0]) * dx + (py - a[1]) * dy) / L, 0, 1); return Math.hypot(px - a[0] - dx * k, py - a[1] - dy * k); };
+    let best = null, bestS = -Infinity;
+    for (let k = 0; k < 120; k++) {
+      const x = lerp(w / 2 + 16, this.W - w / 2 - 16, r()), y = lerp(top, bot, r());
+      let d = Math.hypot(x - head[0], y - head[1]); live.forEach(f => { d = Math.min(d, Math.hypot(x - f.x, y - f.y), segD(x, y, head, [f.x, f.y]) + 30); });
+      if (d > bestS) { bestS = d; best = [x, y]; }
+    }
+    if (!best || bestS < 90) return;
+    this.foods.push({ key, x: best[0], y: best[1], w, h, born: this.t + .35, rot: (r() - .5) * .3, ph: r() * TAU, eaten: -1, bites: 1, biteAt: 0, holes: [], sc, decoy: true });
   }
   // the big leaf goes in bites; each one leaves a scalloped hole
   bite(f, h) {
@@ -254,9 +272,9 @@ class Game {
     f.eaten = this.t; this.chomp = 1;
     const col = FOOD[f.key].col;
     if (f.decoy) {
-      this.aches++; this.penalty += 5; this.ache = this.t; this.wig = 1;
+      this.aches++; this.penalty += 2; this.ache = this.t; this.wig = 1;
       for (let i = 0; i < 9; i++) { const a = this.rng() * TAU, v = 50 + this.rng() * 90; this.particles.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, r: 2 + this.rng() * 3, col, life: .55 + this.rng() * .3, age: 0, g: 260 }); }
-      this.particles.push({ x: f.x, y: f.y - this.R * 2, vx: 0, vy: -40, r: 0, txt: '+5s', life: 1.3, age: 0, g: 0, drag: .4 });
+      this.particles.push({ x: f.x, y: f.y - this.R * 2, vx: 0, vy: -40, r: 0, txt: '+2s', life: 1.3, age: 0, g: 0, drag: .4 });
       this.hooks.onDecoy && this.hooks.onDecoy(f.key, this.aches);
       return;
     }
@@ -450,7 +468,7 @@ class Game {
   flyBy() {
     this.layout(); const r = this.restPose(), W = this.W, H = this.H;
     this.bf = Object.assign({ p: 0, burst: 1, alpha: 1 }, r); this.foods = []; this.particles = []; this.ripples = [];
-    this.lv = { t: 0, path: [[-W * .14, H * .46], [-W * .14, H * .46], [W * .22, H * .38], [r.x - 30, r.y + 20], [W * .82, H * .3], [W * .48, H * .12], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] };
+    this.lv = { t: -.35, path: [[-W * .14, H * .46], [-W * .14, H * .46], [W * .22, H * .38], [r.x - 30, r.y + 20], [W * .82, H * .3], [W * .48, H * .12], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] };
     this.mode = 'leave';
   }
   flyAway() {

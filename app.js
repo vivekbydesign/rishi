@@ -33,7 +33,12 @@ const chomp = (a, t, v, bright) => {
   og.gain.setValueAtTime(0, t); og.gain.linearRampToValueAtTime(v * .7, t + .006); og.gain.exponentialRampToValueAtTime(.0001, t + .07);
   o.connect(og).connect(a.destination); o.start(t); o.stop(t + .09);
 };
-const munch = (leaf) => { const a = audio(); if (!a || state.muted) return; const t = a.currentTime + .01, n = leaf ? 2 : 3, br = leaf ? 2600 : 1700; for (let i = 0; i < n; i++) chomp(a, t + i * (.13 + Math.random() * .03), (leaf ? .2 : .26) * (1 - i * .22), br); };
+/* chomp: the recorded bite; the synth chew is only a fallback until it loads */
+let chompBuf = null, chompLoading = false;
+const loadChomp = a => { if (chompBuf || chompLoading || !a) return; chompLoading = true; fetch('assets/chomp.mp3').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => a.decodeAudioData(b, ok, no))).then(b => { chompBuf = b; }).catch(() => { chompLoading = false; }); };
+const munch = (leaf) => { const a = audio(); if (!a || state.muted) return; loadChomp(a); const t = a.currentTime + .01;
+  if (chompBuf) { const s = a.createBufferSource(), g = a.createGain(); s.buffer = chompBuf; s.playbackRate.value = (leaf ? 1.12 : 1) * (.95 + Math.random() * .1); g.gain.value = leaf ? .6 : .85; s.connect(g).connect(a.destination); s.start(t); return; }
+  const n = leaf ? 2 : 3, br = leaf ? 2600 : 1700; for (let i = 0; i < n; i++) chomp(a, t + i * (.13 + Math.random() * .03), (leaf ? .2 : .26) * (1 - i * .22), br); };
 /* butterfly: rising glass sparkle over a breathy wing-flutter, with a soft echo tail */
 const shimmer = () => {
   const a = audio(); if (!a || state.muted) return; const t = a.currentTime + .02;
@@ -84,7 +89,7 @@ const paintBoard = list => {
 
 /* sheets */
 let openSheet = $('introSheet');
-const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); } } else card.classList.remove('sheet-open'); };
+const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); requestAnimationFrame(scatterDots); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
 if (fine) document.querySelector('.coach-t').textContent = 'Arrow keys to turn · avoid the edges';
@@ -113,7 +118,7 @@ const hooks = {
   onHatch() { if (navigator.vibrate) navigator.vibrate(18); banner('Pop!', 'out came a tiny caterpillar', 'apple'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
-  onDecoy() { if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
+  onDecoy() { const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onFinish(secs, bumps, aches) { state.lastTime = secs; state.lastBumps = bumps; state.lastAches = aches || 0; banner('Much better!', 'He wasn’t hungry anymore', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },
   onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
@@ -125,7 +130,7 @@ const hooks = {
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
-  show(null); $('toast').classList.remove('show'); audio(); card.classList.add('playing');
+  show(null); $('toast').classList.remove('show'); loadChomp(audio()); card.classList.add('playing');
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
   game.startPlay();
   setTimeout(() => { if (game.mode === 'play' && !game.input.down) $('coach').classList.add('show'); }, 2600);
@@ -133,9 +138,9 @@ function startGame() {
 }
 const flyLater = () => { clearTimeout(state.flyT); state.flyT = setTimeout(() => { if (game.mode === 'rest') game.flyAway(); }, 1700); };
 function goInvite() {
-  show(null); $('goal').classList.remove('show'); if (game.mode === 'rest') flyLater(); card.classList.remove('playing', 'metamorph'); $('coach').classList.remove('show');
+  show(null); $('sweetNote').classList.remove('show'); $('goal').classList.remove('show'); if (game.mode === 'rest') flyLater(); card.classList.remove('playing', 'metamorph'); $('coach').classList.remove('show');
   // leaving a run for the invite: the butterfly flutters across the invite, then he crawls back in
-  if (['play', 'over'].includes(game.mode)) { game.flyBy(); shimmer(); }
+  if (['play', 'over'].includes(game.mode)) { card.classList.remove('ready'); card.classList.add('calm'); clearTimeout(state.calmT); state.calmT = setTimeout(() => card.classList.remove('calm'), 1400); game.flyBy(); setTimeout(shimmer, 380); }
   else if (['transform', 'hatch'].includes(game.mode)) game.buildHero(true);
 }
 async function results() {
@@ -200,7 +205,7 @@ $('resAgain').onclick = () => { game.buildHero(false); startGame(); };
 $('resScores').onclick = () => { renderBoard(); show('scoreSheet'); };
 $('scClose').onclick = $('scBack').onclick = () => goInvite();
 // swipe a sheet down to close it
-['introSheet', 'scoreSheet', 'rsvpSheet', 'overSheet'].forEach(id => {
+['scoreSheet', 'rsvpSheet', 'overSheet'].forEach(id => {
   const sh = $(id); let y0 = null, dy = 0, t0 = 0;
   sh.addEventListener('touchstart', e => { const sc = e.target.closest('.board'); if (sc && sc.scrollTop > 0) return; y0 = e.touches[0].clientY; dy = 0; t0 = performance.now(); }, { passive: true });
   sh.addEventListener('touchmove', e => { if (y0 === null) return; dy = Math.max(0, e.touches[0].clientY - y0); if (dy > 4) { sh.classList.add('dragging'); sh.style.transform = `translateY(${dy}px)`; if (e.cancelable) e.preventDefault(); } }, { passive: false });
@@ -223,6 +228,27 @@ function fitOne() {
   const y = Math.round(c.height * .55), row = g.getImageData(0, y, c.width, 1).data; let a = -1, b = -1;
   for (let x = 0; x < c.width; x++) if (row[x * 4 + 3] > 128) { if (a < 0) a = x; b = x; }
   if (a >= 0) CP.oneStem = (a + b) / 2 / c.width;
+}
+
+/* welcome dots: painted circles scattered around the page, never over the words */
+const DOT_TEX = ['violet', 'blue', 'red', 'green', 'orange', 'yellow', 'teal'];
+function scatterDots() {
+  const box = $('dots'), sh = $('introSheet'); box.textContent = '';
+  const R = sh.getBoundingClientRect(); if (!R.width) return;
+  const pad = 12, keep = [...sh.children].filter(el => el !== box && el.offsetParent).map(el => el.getBoundingClientRect());
+  ['.deco .sun', '.deco .branch'].forEach(q => { const el = card.querySelector(q); if (el) keep.push(el.getBoundingClientRect()); });
+  const hit = (x, y, r) => keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top);
+  const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);
+  while (pts.length < 30 && tries++ < 1500) {
+    const r = 6 + Math.random() * 3.5, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
+    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < 48)) continue;
+    pts.push({ x, y, r });
+  }
+  pts.sort((a, b) => a.y - b.y).forEach((p, i) => {
+    const d = document.createElement('span'); d.className = 'dot';
+    Object.assign(d.style, { left: p.x - p.r + 'px', top: p.y - p.r + 'px', width: p.r * 2 + 'px', height: p.r * 2 + 'px', backgroundImage: `url(assets/tex/${DOT_TEX[ci++ % DOT_TEX.length]}.jpg)`, animationDelay: `${.15 + i * .035}s, ${Math.random() * -6}s` });
+    box.append(d);
+  });
 }
 
 /* welcome caterpillar, same cut-paper art as the game */
@@ -258,7 +284,7 @@ function introCat() {
   game = window.__game = new CP.Game($('cv'), card, hooks);
   game.buildHero(true); tick();
   const q = location.search;
-  if (/[?&](auto=1|state=)/.test(q)) show(null); else requestAnimationFrame(introCat);
+  if (/[?&](auto=1|state=)/.test(q)) show(null); else { requestAnimationFrame(introCat); (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => requestAnimationFrame(scatterDots)); }
   if (/[?&]auto=1/.test(q)) { state.name = state.name || 'Robo'; setTimeout(startGame, 500); return; }
   if (/[?&]state=scores/.test(q)) { renderBoard(); show('scoreSheet'); return; }
   if (/[?&]state=rest/.test(q)) { game.setRest(); flyLater(); return; }
