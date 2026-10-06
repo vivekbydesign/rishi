@@ -50,13 +50,15 @@ class Game {
   lastGoal() { return this.turns.length ? this.turns[this.turns.length - 1] : this.dirGoal; }
   // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
   queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
+  // after hatching he waits; the first touch (or key) sets him off and starts the clock
+  release() { if (!this.held) return; this.held = false; this.hooks.onRelease && this.hooks.onRelease(); }
   setTarget() { this.target = { x: clamp(this.input.x, -20, this.W + 20), y: clamp(this.input.y, this.top - 50, this.H), t: this.t }; }
   bottom() { return this.H - 78; }
   bindInput() {
     const pos = e => { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     // snake controls: swipe in a direction, or tap to one side of his head; arrow keys on a keyboard
     const sw = { x: 0, y: 0, moved: false };
-    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; sw.x = this.input.x; sw.y = this.input.y; sw.moved = false; this.hooks.onTouch && this.hooks.onTouch(); });
+    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; this.release(); sw.x = this.input.x; sw.y = this.input.y; sw.moved = false; this.hooks.onTouch && this.hooks.onTouch(); });
     this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); const dx = this.input.x - sw.x, dy = this.input.y - sw.y;
       if (Math.hypot(dx, dy) > 22) { this.queueTurn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2)); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
     const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return;
@@ -65,7 +67,7 @@ class Game {
     this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', () => { this.input.down = false; });
     this.keys = {};
     const KM = { ArrowUp: -PI / 2, ArrowDown: PI / 2, ArrowLeft: PI, ArrowRight: 0, w: -PI / 2, s: PI / 2, a: PI, d: 0, W: -PI / 2, S: PI / 2, A: PI, D: 0 };
-    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
+    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; this.release(); if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
     addEventListener('blur', () => { this.keys = {}; this.input.down = false; });
   }
 
@@ -159,7 +161,7 @@ class Game {
     const segs = this.inchSegs();
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
-    this.dayI = -1; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
+    this.dayI = -1; this.held = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
     this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
@@ -168,7 +170,7 @@ class Game {
     const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 2 + i * .1, y + 36 - i * 1.5]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
     this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 4.5; this.phase = 0;
-    this.shrink = { t: 0, R0: 4.5 }; this.mode = 'play'; this.queue = 1.5;
+    this.shrink = { t: 0, R0: 4.5 }; this.mode = 'play'; this.queue = 1.5; this.held = !this.auto;
     h.shell = { x, y: y - 3 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
     for (let i = 0; i < 12; i++) { const a = -PI / 2 + (this.rng() - .5) * 2.4, v = 60 + this.rng() * 120; this.particles.push({ x, y: y - 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.2 + this.rng() * 2, col: '#f4ead2', life: .6 + this.rng() * .4, age: 0, g: 420 }); }
     this.hooks.onHatch && this.hooks.onHatch();
@@ -348,10 +350,11 @@ class Game {
       else { const target = lerp(13 + 5 * this.eaten / CP.TOTAL_FOODS, 20, ease.inOut(this.fat)); this.R = lerp(this.R, target, 1 - Math.exp(-dt * 4)); }
       if (this.queue > 0) { this.queue -= dt; if (this.queue <= 0) this.nextDay(); }
       if (this.spawnAt && t > this.spawnAt) { this.spawnAt = 0; this.spawn(this.pending.shift()); this.hooks.onSpawn && this.hooks.onSpawn(); }
-      if (this.timing) this.elapsed += dt;
+      if (this.held && this.auto) this.held = false;
+      if (this.timing && !this.held) this.elapsed += dt;
       if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / 1.4);
       const aching = this.ache && t - this.ache < 2;
-      this.speed = 180 * this.fs * (1 - .22 * this.fat) * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
+      this.speed = this.held ? 0 : 180 * this.fs * (1 - .22 * this.fat) * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
       this.steer(dt);
       const h = this.at(this.headS); this.push(h[0] + Math.cos(this.dir) * this.speed * dt, h[1] + Math.sin(this.dir) * this.speed * dt); this.headS = this.cum[this.cum.length - 1];
       this.phase += this.speed * dt / (this.R * 2.4) * TAU;

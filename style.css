@@ -307,3 +307,5 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .sweet-note.show{transform:translate(-50%,0) scale(1);opacity:1}
 /* leaving a run: the invite simply fades back in (no re-reveal), so the butterfly has something to fly over */
 .calm .invite{transition:opacity .4s var(--ease-out),transform .4s var(--ease-out)}
+/* day titles sit low, out of the way of the play field's centre */
+.banner{top:auto;bottom:calc(var(--safe-b) + 150px)}
