@@ -148,7 +148,7 @@ const hooks = {
   onHatch() { if (navigator.vibrate) navigator.vibrate(18); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) { coach(1, true); game.release(); } }, 1300); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
-  onDecoy() { const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
+  onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onFinish(secs, bumps, aches) { state.lastTime = secs; state.lastBumps = bumps; state.lastAches = aches || 0; banner('Much better!', 'He wasn’t hungry anymore', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },
   onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
