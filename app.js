@@ -240,9 +240,9 @@ function scatterDots() {
   ['.deco .sun', '.deco .branch'].forEach(q => { const el = card.querySelector(q); if (el) keep.push(el.getBoundingClientRect()); });
   const hit = (x, y, r) => keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top);
   const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);
-  while (pts.length < 16 && tries++ < 1500) {
+  while (pts.length < 28 && tries++ < 3000) {
     const r = 10 + Math.random() * 5, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
-    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < 78)) continue;
+    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < 58)) continue;
     pts.push({ x, y, r });
   }
   pts.sort((a, b) => a.y - b.y).forEach((p, i) => {
