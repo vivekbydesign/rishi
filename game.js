@@ -251,17 +251,23 @@ class Game {
     for (let k = have; k < want; k++) this.spawnSweet(head);
   }
   spawnSweet(head) {
-    const r = this.rng, key = ['cake', 'icecream', 'lollipop'][Math.floor(r() * 3)], F = FOOD[key], sc = this.fs * .9, w = F.w * sc, h = F.h * sc;
+    // draw from a shuffled bag so the same sweet rarely shows up twice in a row
+    const r = this.rng;
+    if (!this.sweetBag || !this.sweetBag.length) { const b = ['cake', 'icecream', 'lollipop']; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } if (b[0] === this.lastSweet) b.push(b.shift()); this.sweetBag = b; }
+    const key = this.lastSweet = this.sweetBag.shift(), F = FOOD[key], sc = this.fs * (.82 + r() * .16), w = F.w * sc, h = F.h * sc;
     const live = this.foods.filter(o => o.eaten < 0 && !o.decoy), top = this.top + 44 + h / 2, bot = this.H - 150 - h / 2;
     const segD = (px, py, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy || 1, k = clamp(((px - a[0]) * dx + (py - a[1]) * dy) / L, 0, 1); return Math.hypot(px - a[0] - dx * k, py - a[1] - dy * k); };
-    let best = null, bestS = -Infinity;
-    for (let k = 0; k < 120; k++) {
+    // pick any spot that is clear enough (not the farthest one, which always lands in a corner)
+    let best = null, bestS = -Infinity; const ok = [];
+    for (let k = 0; k < 140; k++) {
       const x = lerp(w / 2 + 16, this.W - w / 2 - 16, r()), y = lerp(top, bot, r());
-      let d = Math.hypot(x - head[0], y - head[1]); this.foods.forEach(o => { if (o.decoy && o.eaten < 0 && !o.gone) d = Math.min(d, Math.hypot(x - o.x, y - o.y)); }); live.forEach(f => { d = Math.min(d, Math.hypot(x - f.x, y - f.y), segD(x, y, head, [f.x, f.y]) + 30); });
+      let d = Math.hypot(x - head[0], y - head[1]); this.foods.forEach(o => { if (o.decoy && o.eaten < 0 && !o.gone) d = Math.min(d, Math.hypot(x - o.x, y - o.y) - 30); }); live.forEach(f => { d = Math.min(d, Math.hypot(x - f.x, y - f.y), segD(x, y, head, [f.x, f.y]) + 30); });
       if (d > bestS) { bestS = d; best = [x, y]; }
+      if (d >= 105) ok.push([x, y]);
     }
-    if (!best || bestS < 90) return;
-    this.foods.push({ key, x: best[0], y: best[1], w, h, born: this.t + .35, rot: (r() - .5) * .3, ph: r() * TAU, eaten: -1, bites: 1, biteAt: 0, holes: [], sc, decoy: true });
+    if (ok.length) best = ok[Math.floor(r() * ok.length)];
+    else if (!best || bestS < 90) return;
+    this.foods.push({ key, x: best[0], y: best[1], w, h, born: this.t + .35 + r() * .3, rot: (r() - .5) * .5, ph: r() * TAU, eaten: -1, bites: 1, biteAt: 0, holes: [], sc, decoy: true });
   }
   // the big leaf goes in bites; each one leaves a scalloped hole
   bite(f, h) {
@@ -373,7 +379,7 @@ class Game {
       this.foods = this.foods.filter(f => (f.eaten < 0 || t - f.eaten < .9) && !(f.gone && t - f.gone > .5));
     } else if (this.mode === 'transform') { this.stepTransform(dt); if (this.tf.t > 4.8) this.flit(dt); }
     else if (this.mode === 'rest') this.stepButterfly(dt);
-    else if (this.mode === 'leave') { this.lv.t += dt; const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.t > st + 5.4) this.buildHero(true); }
+    else if (this.mode === 'leave') { this.lv.t += dt; if (this.lv.em && !this.lv.burst && this.lv.t > this.lv.em * .55) { this.lv.burst = 1; this.confetti(this.lv.path[0][0], this.lv.path[0][1] + 10, 70); } const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.t > st + 5.4) this.buildHero(true); }
     if (this._m !== this.mode) { this._m = this.mode; this.card.classList.toggle('behind', this.mode === 'hero'); }
     this.nShow = lerp(this.nShow, this.fat ? lerp(this.n, 11, ease.inOut(this.fat)) : this.n, 1 - Math.exp(-dt * 6));
     this.wig = Math.max(0, this.wig - dt * .7);
