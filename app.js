@@ -54,7 +54,11 @@ const shimmer = () => {
   n.connect(hp).connect(g).connect(out); n.start(t); n.stop(t + 1.65); lfo.start(t); lfo.stop(t + 1.65);
 };
 /* wall bump: a soft sad-trombone "wah wah wah waaah" */
-const wop = () => { const a = audio(); if (!a || state.muted) return; const t0 = a.currentTime + .05, lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 4; lp.connect(a.destination);
+let wahBuf = null, wahLoading = false;
+const loadWah = a => { if (wahBuf || wahLoading || !a) return; wahLoading = true; fetch('assets/trombone.mp3').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => a.decodeAudioData(b, ok, no))).then(b => { wahBuf = b; }).catch(() => { wahLoading = false; }); };
+const wop = () => { const a = audio(); if (!a || state.muted) return; loadWah(a);
+  if (wahBuf) { const s = a.createBufferSource(), g = a.createGain(); s.buffer = wahBuf; g.gain.value = .5; s.connect(g).connect(a.destination); s.start(a.currentTime + .02); return; }
+  const t0 = a.currentTime + .05, lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 4; lp.connect(a.destination);
   [[392, 0, .26], [370, .3, .26], [349, .6, .26], [330, .9, .95]].forEach(([f, s, d], i) => { const o = a.createOscillator(), g = a.createGain(), t = t0 + s; o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t);
     if (i === 3) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = 6; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(9, t + .3); l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + d); o.frequency.linearRampToValueAtTime(f * .94, t + d); }
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.11, t + .05); g.gain.setValueAtTime(.11, t + d * .7); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(lp); o.start(t); o.stop(t + d + .05); }); };
@@ -149,7 +153,7 @@ const hooks = {
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
-  show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); loadChomp(audio()); card.classList.add('playing');
+  show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); loadChomp(audio()); loadWah(audio()); card.classList.add('playing');
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
   game.startPlay();
 }
