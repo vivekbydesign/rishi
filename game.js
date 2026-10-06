@@ -47,18 +47,25 @@ class Game {
     this.top = Math.max(110, (hud ? hud.offsetTop + hud.offsetHeight : 60) + 22);
   }
   // a tap sets where he is heading; he keeps going there after the finger lifts
+  lastGoal() { return this.turns.length ? this.turns[this.turns.length - 1] : this.dirGoal; }
+  // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
+  queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
   setTarget() { this.target = { x: clamp(this.input.x, -20, this.W + 20), y: clamp(this.input.y, this.top - 50, this.H), t: this.t }; }
   bottom() { return this.H - 78; }
   bindInput() {
     const pos = e => { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; this.setTarget(); this.ripples.push({ x: this.input.x, y: this.input.y, t: this.t }); this.hooks.onTouch && this.hooks.onTouch(); });
-    this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); this.setTarget(); });
-    const up = () => { this.input.down = false; };
-    this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', up);
+    // snake controls: swipe in a direction, or tap to one side of his head; arrow keys on a keyboard
+    const sw = { x: 0, y: 0, moved: false };
+    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; sw.x = this.input.x; sw.y = this.input.y; sw.moved = false; this.hooks.onTouch && this.hooks.onTouch(); });
+    this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); const dx = this.input.x - sw.x, dy = this.input.y - sw.y;
+      if (Math.hypot(dx, dy) > 22) { this.queueTurn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2)); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
+    const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return;
+      const h = this.at(this.headS), g = this.lastGoal(); this.ripples.push({ x: this.input.x, y: this.input.y, t: this.t });
+      this.queueTurn(Math.abs(Math.cos(g)) > .5 ? (this.input.y < h[1] ? -PI / 2 : PI / 2) : (this.input.x < h[0] ? PI : 0)); };
+    this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', () => { this.input.down = false; });
     this.keys = {};
-    const KM = { ArrowUp: 'U', ArrowDown: 'D', ArrowLeft: 'L', ArrowRight: 'R', w: 'U', s: 'D', a: 'L', d: 'R', W: 'U', S: 'D', A: 'L', D: 'R' };
-    addEventListener('keydown', e => { const k = KM[e.key]; if (!k || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; this.keys[k] = 1; e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
-    addEventListener('keyup', e => { const k = KM[e.key]; if (k) delete this.keys[k]; });
+    const KM = { ArrowUp: -PI / 2, ArrowDown: PI / 2, ArrowLeft: PI, ArrowRight: 0, w: -PI / 2, s: PI / 2, a: PI, d: 0, W: -PI / 2, S: PI / 2, A: PI, D: 0 };
+    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
     addEventListener('blur', () => { this.keys = {}; this.input.down = false; });
   }
 
@@ -153,14 +160,14 @@ class Game {
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
     this.dayI = -1; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
-    this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {};
+    this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
   pop() {
     const h = this.hatch, x = h.x, y = h.y; h.popped = this.t;
     const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 2 + i * .1, y + 36 - i * 1.5]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
-    this.dir = -PI / 2 + .45; this.n = 3; this.nShow = 3; this.R = 4.5; this.phase = 0;
+    this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 4.5; this.phase = 0;
     this.shrink = { t: 0, R0: 4.5 }; this.mode = 'play'; this.queue = 1.5;
     h.shell = { x, y: y - 3 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
     for (let i = 0; i < 12; i++) { const a = -PI / 2 + (this.rng() - .5) * 2.4, v = 60 + this.rng() * 120; this.particles.push({ x, y: y - 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.2 + this.rng() * 2, col: '#f4ead2', life: .6 + this.rng() * .4, age: 0, g: 420 }); }
@@ -267,17 +274,28 @@ class Game {
     }
   }
   steer(dt) {
-    const head = this.at(this.headS); let want = null;
-    if (this.target) { want = [this.target.x, this.target.y]; if (!this.input.down && Math.hypot(want[0] - head[0], want[1] - head[1]) < this.R * 1.2) { this.target = null; want = null; } }
-    else if (Object.keys(this.keys).length) { const k = this.keys; const kx = (k.R ? 1 : 0) - (k.L ? 1 : 0), ky = (k.D ? 1 : 0) - (k.U ? 1 : 0); if (kx || ky) { this.target = null; want = [head[0] + kx * 200, head[1] + ky * 200]; } }
-    else if (this.auto) { let best = null, bd = 1e9; this.foods.forEach(f => { if (f.eaten >= 0 || f.decoy) return; const d = Math.hypot(f.x - head[0], f.y - head[1]); if (d < bd) { bd = d; best = f; } }); if (best) want = [best.x, best.y]; }
-    let turn = 7.5;
-    // a gentle pull toward food that is nearly in his path
-    if (!this.auto) this.foods.forEach(f => { if (f.eaten >= 0 || f.decoy || this.t < f.born) return; const dx = f.x - head[0], dy = f.y - head[1], d = Math.hypot(dx, dy), da = angDiff(this.dir, Math.atan2(dy, dx)); if (d < 95 * this.fs && Math.abs(da) < .9) this.dir += clamp(da, -2.4 * dt, 2.4 * dt); });
-    // with no tap to follow he turns away from the edges; steering into a wall still bumps
-    if (false) { const look = this.R * 4 + 80 * this.fs, lx = head[0] + Math.cos(this.dir) * look, ly = head[1] + Math.sin(this.dir) * look;
-      if (lx < 0 || lx > this.W || ly < this.top - 34 || ly > this.H - 34) { const c = Math.atan2(this.H * .5 - head[1], this.W / 2 - head[0]); this.dir += clamp(angDiff(this.dir, c), -5 * dt, 5 * dt); } }
-    if (want) { const dx = want[0] - head[0], dy = want[1] - head[1]; if (Math.hypot(dx, dy) > this.R * .8) this.dir += clamp(angDiff(this.dir, Math.atan2(dy, dx)), -turn * dt, turn * dt); }
+    const h = this.at(this.headS);
+    if (this.auto) this.autoTurn(h);
+    // before the clock starts (and after the last bite) he turns himself away from the edges
+    if (!this.timing || this.auto) this.avoidWall(h);
+    if (Math.abs(angDiff(this.dir, this.dirGoal)) < 1e-3) { this.dir = this.dirGoal; if (this.turns.length) this.dirGoal = this.turns.shift(); }
+    // a quick, rounded quarter turn
+    this.dir += clamp(angDiff(this.dir, this.dirGoal), -15 * dt, 15 * dt);
+  }
+  turning() { return this.turns.length || Math.abs(angDiff(this.dir, this.dirGoal)) > 1e-3; }
+  avoidWall(h) {
+    if (this.turning()) return; const b = this.bounds(), look = this.R * 2 + 34, g = this.dirGoal, lx = h[0] + Math.cos(g) * look, ly = h[1] + Math.sin(g) * look;
+    if (lx > b.x0 && lx < b.x1 && ly > b.y0 && ly < b.y1) return;
+    const cx = this.W / 2 - h[0], cy = (b.y0 + b.y1) / 2 - h[1], o = [g + PI / 2, g - PI / 2].map(a => [a, Math.cos(a) * cx + Math.sin(a) * cy]).sort((p, q) => q[1] - p[1]);
+    this.queueTurn(Math.round(o[0][0] / (PI / 2)) * (PI / 2));
+  }
+  // demo bot: line up on one axis, then the other
+  autoTurn(h) {
+    if (this.turning()) return; let best = null, bd = 1e9;
+    this.foods.forEach(f => { if (f.eaten >= 0 || f.decoy || this.t < f.born) return; const d = Math.hypot(f.x - h[0], f.y - h[1]); if (d < bd) { bd = d; best = f; } });
+    if (!best) return; const dx = best.x - h[0], dy = best.y - h[1], tol = this.R * .6 + 8, g = this.dirGoal;
+    if (Math.abs(Math.cos(g)) > .5) { if (Math.abs(dx) < tol || Math.sign(dx) !== Math.sign(Math.cos(g))) this.queueTurn(dy > 0 ? PI / 2 : -PI / 2); }
+    else if (Math.abs(dy) < tol || Math.sign(dy) !== Math.sign(Math.sin(g))) this.queueTurn(dx > 0 ? 0 : PI);
   }
 
   /* ---------- metamorphosis ---------- */
@@ -317,7 +335,6 @@ class Game {
       const aching = this.ache && t - this.ache < 2;
       this.speed = 180 * this.fs * (1 - .22 * this.fat) * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
       this.steer(dt);
-      if (aching) this.dir += Math.sin(t * 9) * dt * 2;
       const h = this.at(this.headS); this.push(h[0] + Math.cos(this.dir) * this.speed * dt, h[1] + Math.sin(this.dir) * this.speed * dt); this.headS = this.cum[this.cum.length - 1];
       this.phase += this.speed * dt / (this.R * 2.4) * TAU;
       const hh = this.at(this.headS);
@@ -386,10 +403,11 @@ class Game {
     this.ripples.forEach(rp => { const k = (this.t - rp.t) / .6, e = ease.out(k), r = 8 + 30 * e;
       g.save(); g.globalAlpha = .22 * (1 - k); g.fillStyle = '#2e8b3a'; g.beginPath(); g.arc(rp.x, rp.y, r, 0, TAU); g.fill();
       g.globalAlpha = .35 * (1 - k); g.strokeStyle = '#2e8b3a'; g.lineWidth = 1.5; g.stroke(); g.restore(); });
-    if (this.mode === 'play' || this.mode === 'transform') this.drawFoods(g);
+    if (this.mode === 'play' || this.mode === 'over' || this.mode === 'transform') this.drawFoods(g);
+    this.drawWallWarn(g);
     this.drawParticles(g, false);
     if (this.hatch) this.drawHatch(g, false);
-    if (this.mode === 'hero' || this.mode === 'play') this.drawCaterpillar(g, this.segPositions());
+    if (this.mode === 'hero' || this.mode === 'play' || this.mode === 'over') this.drawCaterpillar(g, this.segPositions());
     if (this.hatch) this.drawHatch(g, true);
     if (this.mode === 'transform') this.drawTransform(g);
     if (this.mode === 'leave') { const b = this.bf, v = clamp(this.lv.t / 4.2, 0, 1), e = ease.inOut(v), [x, y] = this.crPoint(this.lv.path, e), tilt = clamp((x - (this.lv.px ?? x)) * .03, -.4, .4); this.lv.px = x;
@@ -410,7 +428,8 @@ class Game {
     for (let i = 4; i < segs.length; i++) {
       const sg = segs[i]; if (Math.hypot(sg.x - h[0], sg.y - h[1]) > this.R * 1.15) continue;
       this.bumps++; this.penalty += 3; this.safeUntil = this.t + 1.2; this.wig = 1;
-      this.dir = Math.atan2(h[1] - sg.y, h[0] - sg.x);
+      const ax = h[0] - sg.x, ay = h[1] - sg.y, g = this.dirGoal; this.turns = [];
+      this.dirGoal = [g + PI / 2, g - PI / 2].map(a => Math.round(a / (PI / 2)) * (PI / 2)).sort((p, q) => (Math.cos(q) * ax + Math.sin(q) * ay) - (Math.cos(p) * ax + Math.sin(p) * ay))[0];
       this.particles.push({ x: h[0], y: h[1] - this.R * 2, vx: 0, vy: -40, r: 0, txt: '+3s', life: 1.1, age: 0, g: 0, drag: .4 });
       this.hooks.onBump && this.hooks.onBump(this.bumps, 'self');
       return;
@@ -419,12 +438,22 @@ class Game {
   // the field wraps: out one side, back in the other (the whole trail shifts, segments wrap one by one when drawn)
   field() { const p = this.R * 1.6; return { x0: -p, y0: this.top - 30 - p, w: this.W + p * 2, h: this.H - 40 - this.top + 30 + p * 2 }; }
   wrapPt(x, y) { const f = this.field(); return [f.x0 + (((x - f.x0) % f.w) + f.w) % f.w, f.y0 + (((y - f.y0) % f.h) + f.h) % f.h]; }
+  // the edges of the page are walls: touching one ends the run
+  bounds() { const m = this.R * .5; return { x0: m, x1: this.W - m, y0: this.top - 30, y1: this.H - 34 - m }; }
   checkWall(h) {
-    const f = this.field(); let dx = 0, dy = 0;
-    if (h[0] < f.x0) dx = f.w; else if (h[0] > f.x0 + f.w) dx = -f.w;
-    if (h[1] < f.y0) dy = f.h; else if (h[1] > f.y0 + f.h) dy = -f.h;
-    if (!dx && !dy) return;
-    this.trail.forEach(p => { p[0] += dx; p[1] += dy; }); this.target = null;
+    const b = this.bounds(); if (h[0] > b.x0 && h[0] < b.x1 && h[1] > b.y0 && h[1] < b.y1) return;
+    if (!this.timing) return;
+    this.mode = 'over'; this.timing = false; this.speed = 0; this.wig = 1.6; this.turns = []; this.input.down = false;
+    for (let i = 0; i < 10; i++) { const a = this.dir + PI + (this.rng() - .5) * 2.2, v = 50 + this.rng() * 110; this.particles.push({ x: h[0], y: h[1], vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.4 + this.rng() * 2.2, col: ['#e2412b', '#4c9a2a', '#f2c230'][i % 3], life: .5 + this.rng() * .4, age: 0, g: 300 }); }
+    this.hooks.onWall && this.hooks.onWall(this.score());
+  }
+  // a soft red glow creeps in from the edge he is heading toward
+  drawWallWarn(g) {
+    if (this.mode !== 'play' || !this.timing) return; const h = this.at(this.headS), b = this.bounds(), R = 90, dx = Math.cos(this.dir), dy = Math.sin(this.dir);
+    [[dx < -.5, h[0] - b.x0, 0, 0, b.x0 + R, 0], [dx > .5, b.x1 - h[0], this.W, 0, b.x1 - R, 0], [dy < -.5, h[1] - b.y0, 0, b.y0 - 24, 0, b.y0 + R], [dy > .5, b.y1 - h[1], 0, this.H, 0, b.y1 - R]].forEach(([on, d, x0, y0, x1, y1]) => {
+      if (!on || d > R) return; const a = .28 * (1 - d / R) ** 1.5;
+      const gr = g.createLinearGradient(x0, y0, x1 || x0, y1 || y0); gr.addColorStop(0, `rgba(226,65,43,${a})`); gr.addColorStop(1, 'rgba(226,65,43,0)');
+      g.save(); g.fillStyle = gr; g.fillRect(0, 0, this.W, this.H); g.restore(); });
   }
   flyAway() {
     if (this.mode !== 'rest') return;

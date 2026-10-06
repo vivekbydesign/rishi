@@ -87,9 +87,9 @@ let openSheet = $('introSheet');
 const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
-if (fine) document.querySelector('.coach-t').textContent = 'Click where you want him to go';
+if (fine) document.querySelector('.coach-t').textContent = 'Use the arrow keys to turn';
 addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && game.mode === 'play') goInvite(); return; }
+  if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && (game.mode === 'play' || game.mode === 'over')) goInvite(); return; }
   if (!game || openSheet || game.mode !== 'hero' || ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
   if (/^Arrow/.test(e.key)) { e.preventDefault(); state.name ? startGame() : show('introSheet'); }
 });
@@ -116,8 +116,11 @@ const hooks = {
   onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
+  onWall() { if (navigator.vibrate) navigator.vibrate([40, 30, 60]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show');
+    const d = DAYS_DONE(); $('overSub').textContent = d ? `He bumped into the edge on ${d}.` : 'He bumped into the edge.'; clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
 };
 
+const DAYS_DONE = () => $('dayName').textContent.match(/day$/) ? $('dayName').textContent : '';
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
@@ -130,7 +133,7 @@ function startGame() {
 const flyLater = () => { clearTimeout(state.flyT); state.flyT = setTimeout(() => { if (game.mode === 'rest') game.flyAway(); }, 1700); };
 function goInvite() {
   show(null); $('goal').classList.remove('show'); if (game.mode === 'rest') flyLater(); card.classList.remove('playing', 'metamorph'); $('coach').classList.remove('show');
-  if (game.mode === 'play' || game.mode === 'transform' || game.mode === 'hatch') game.buildHero(true);
+  if (['play', 'over', 'transform', 'hatch'].includes(game.mode)) game.buildHero(true);
 }
 async function results() {
   const secs = state.lastTime, r = await saveScoreAll(state.name || 'Guest', secs);
@@ -194,13 +197,15 @@ $('resAgain').onclick = () => { game.buildHero(false); startGame(); };
 $('resScores').onclick = () => { renderBoard(); show('scoreSheet'); };
 $('scClose').onclick = $('scBack').onclick = () => goInvite();
 // swipe a sheet down to close it
-['introSheet', 'scoreSheet', 'rsvpSheet'].forEach(id => {
+['introSheet', 'scoreSheet', 'rsvpSheet', 'overSheet'].forEach(id => {
   const sh = $(id); let y0 = null, dy = 0, t0 = 0;
   sh.addEventListener('touchstart', e => { const sc = e.target.closest('.board'); if (sc && sc.scrollTop > 0) return; y0 = e.touches[0].clientY; dy = 0; t0 = performance.now(); }, { passive: true });
   sh.addEventListener('touchmove', e => { if (y0 === null) return; dy = Math.max(0, e.touches[0].clientY - y0); if (dy > 4) { sh.classList.add('dragging'); sh.style.transform = `translateY(${dy}px)`; if (e.cancelable) e.preventDefault(); } }, { passive: false });
   sh.addEventListener('touchend', () => { if (y0 === null) return; const v = dy / Math.max(1, performance.now() - t0); y0 = null; sh.classList.remove('dragging'); sh.style.transform = '';
     if (dy > 110 || (dy > 40 && v > .5)) goInvite(); });
 });
+$('overAgain').onclick = () => startGame();
+$('overInvite').onclick = () => goInvite();
 $('scPlay').onclick = () => state.name ? startGame() : show('introSheet');
 $('quitBtn').onclick = () => goInvite();
 $('nameInput').value = state.name;
