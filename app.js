@@ -237,12 +237,11 @@ function scatterDots() {
   const box = $('dots'), sh = $('introSheet'); box.textContent = '';
   const R = sh.getBoundingClientRect(); if (!R.width) return;
   const pad = 30, keep = [...sh.children].filter(el => el !== box && el.offsetParent).map(el => el.getBoundingClientRect());
-  ['.deco .sun', '.deco .branch'].forEach(q => { const el = card.querySelector(q); if (el) keep.push(el.getBoundingClientRect()); });
   const hit = (x, y, r) => keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top);
   const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);
-  while (pts.length < 28 && tries++ < 3000) {
-    const r = 10 + Math.random() * 5, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
-    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < 58)) continue;
+  while (pts.length < 22 && tries++ < 3000) {
+    const r = 6 + Math.pow(Math.random(), 1.4) * 15, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
+    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 40)) continue;
     pts.push({ x, y, r });
   }
   pts.sort((a, b) => a.y - b.y).forEach((p, i) => {
