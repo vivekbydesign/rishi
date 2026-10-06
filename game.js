@@ -555,14 +555,7 @@ class Game {
     g.save(); g.globalAlpha = alpha;
     for (let i = segs.length - 1; i >= 0; i--) {
       const s = segs[i], sc = s.r / SEG.R;
-      // feet behind the body on the downward side
-      const nx = -Math.sin(s.a), ny = Math.cos(s.a), sg = ny >= 0 ? 1 : -1, fy = ny * sg;
-      const onGround = s.ground !== undefined ? s.ground : fy > .3 && i % 2 === 0;
-      if (onGround) for (const off of [-.28, .28]) {
-        const step = Math.sin(this.phase - i * .8 + 1.2 + off * 4), fx = nx * sg, len = s.r * (.9 + .48 * fat - .05 * Math.max(0, step));
-        g.save(); g.translate(s.x + fx * len + Math.cos(s.a) * s.r * (off + step * .06), s.y + fy * len + Math.sin(s.a) * s.r * (off + step * .06));
-        g.rotate(Math.atan2(fy, fx) - PI / 2); g.scale(sc * .36, sc * .42); g.drawImage(SEG.foot, -7, -5, 14, 16); g.restore();
-      }
+      const sg = Math.cos(s.a) >= 0 ? 1 : -1;
       g.save(); g.translate(s.x, s.y); g.rotate(s.a); g.scale(1, sg); if (fat) g.scale(1 + .12 * fat, 1 + .5 * fat);
       g.drawImage(list[(i * 7 + 3) % list.length], -S / 2 * sc, -S / 2 * sc, S * sc, S * sc); g.restore();
     }
@@ -581,18 +574,20 @@ class Game {
     const edge = t < 1.3 ? lerp(-26, 2, ease.out(clamp((t - .7) / .55, 0, 1))) : lerp(2, 112, ease.inOut(clamp((t - 1.35) / 1.3, 0, 1)));
     let rot = 0; if (t > 2.6 && t < 3.8) { const w = (t - 2.6) / 1.2; rot = Math.sin(w * PI * 6) * .07 * Math.sin(w * PI); }
     if (t < 2.7) {
+      // the whole body (head included) slims to fit inside the cocoon's outline, segments evenly spaced, tail at the twig
+      const len = yH - y0 - rt * 1.1, rc = clamp(len / (N + 1.2) / .6, rt * .5, rt * .8), sp = len / (N + 1.2);
       const segs = f.segs.map((s0, k) => {
-        const e = ease.inOut(clamp((t - .05 - (1 - k / N) * .45) / 1.05, 0, 1)), ty = yH - (k + 1) / N * (yH - y0 - rt * .3), tx = f.cx + Math.sin(k * .7) * 1.2 * sz;
-        return { ...s0, x: lerp(s0.x, tx, e), y: lerp(s0.y, ty, e) - Math.sin(PI * e) * 18, a: s0.a + angDiff(s0.a, PI / 2) * e, r: lerp(s0.r, rt * (k > N - 4 ? .9 : 1), e) };
+        const e = ease.inOut(clamp((t - .05 - (1 - k / N) * .45) / 1.05, 0, 1)), ty = y0 + rt * .2 + (N - k) * sp, tx = f.cx;
+        return { ...s0, x: lerp(s0.x, tx, e), y: lerp(s0.y, ty, e) - Math.sin(PI * e) * 14, a: s0.a + angDiff(s0.a, PI / 2) * e, r: lerp(s0.r, rc * (1 - k / N * .12), e) };
       });
       const eh = ease.inOut(clamp((t - .5) / 1.05, 0, 1));
-      this.R = lerp(f.R0, rt * .95, eh);
+      this.R = lerp(f.R0, rc * .9, eh);
       // only the part the silk hasn't reached yet stays visible, so nothing pokes out of the cocoon
       g.save();
       if (t > .7) { const m = new DOMMatrix().translate(f.cx, top - 18 * sz).rotate(rot * 180 / PI).translate(0, 18 * sz).scale(sz); const below = new Path2D(); below.moveTo(-400, -400); below.lineTo(400, -400); below.lineTo(400, 2000); below.lineTo(-400, 2000); below.closePath();
         const wrap = new Path2D(); wrap.moveTo(-40, -30); wrap.lineTo(40, -30); for (let x = 40; x >= -40; x -= 4) wrap.lineTo(x, edge + Math.sin(x * .22 + t * 7) * 2.6); wrap.closePath();
         const hide = new Path2D(); hide.addPath(wrap, m); const keep = new Path2D(); keep.addPath(below, new DOMMatrix()); keep.addPath(hide); g.clip(keep, 'evenodd'); }
-      this.drawCaterpillar(g, segs, 1 - clamp((t - 2.45) / .25, 0, 1), [lerp(f.head[0], f.cx, eh), lerp(f.head[1], yH + rt * .2, eh) - Math.sin(PI * eh) * 18]);
+      this.drawCaterpillar(g, segs, 1 - clamp((t - 2.45) / .25, 0, 1), [lerp(f.head[0], f.cx, eh), lerp(f.head[1], y0 + rt * .2 + (N + 1) * sp, eh) - Math.sin(PI * eh) * 14]);
       g.restore();
     }
     // 2. he spins his little house around himself: the cocoon wraps him from the twig down, sways, then splits

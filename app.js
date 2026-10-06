@@ -268,14 +268,21 @@ const DOT_TEX = ['violet', 'blue', 'red', 'green', 'orange', 'yellow', 'teal'];
 function scatterDots() {
   const box = $('dots'), sh = $('introSheet'); box.textContent = '';
   const R = sh.getBoundingClientRect(); if (!R.width) return;
-  // dots sit around the card; a few tuck slightly under its edge
-  const keep = [...sh.children].filter(el => el !== box && el.offsetParent).map(el => el.getBoundingClientRect());
-  const hit = (x, y, r) => { const pad = 14 - r * .9; return keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top); };
-  const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);
-  while (pts.length < 22 && tries++ < 3000) {
-    const r = 6 + Math.pow(Math.random(), 1.4) * 15, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
-    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 28)) continue;
-    pts.push({ x, y, r });
+  // dots ring the card evenly: walk its outline and drop one every so often, some tucked under the edge
+  const c = sh.querySelector('.intro-card').getBoundingClientRect(), L = c.left - R.left, T = c.top - R.top, Rt = c.right - R.left, B = c.bottom - R.top, W = R.width, H = R.height;
+  const per = 2 * (c.width + c.height), N = 24, pts = []; let ci = Math.floor(Math.random() * DOT_TEX.length);
+  const clear = (x, y, r) => x - r > 4 && x + r < W - 4 && y - r > 4 && y + r < H - 4 && !pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 14);
+  for (let i = 0; i < N; i++) {
+    for (let k = 0; k < 40; k++) {
+      const d = ((i + .2 + Math.random() * .6) / N) * per; let x, y, nx, ny, room;
+      if (d < c.width) { x = L + d; y = T; nx = 0; ny = -1; room = T; }
+      else if (d < c.width + c.height) { x = Rt; y = T + d - c.width; nx = 1; ny = 0; room = W - Rt; }
+      else if (d < 2 * c.width + c.height) { x = Rt - (d - c.width - c.height); y = B; nx = 0; ny = 1; room = H - B; }
+      else { x = L; y = B - (d - 2 * c.width - c.height); nx = -1; ny = 0; room = L; }
+      const r = Math.min(6 + Math.pow(Math.random(), 1.4) * 15, Math.max(6, room * .8)), off = -r * .45 + Math.random() * Math.max(0, room - r * .8);
+      const px = x + nx * (off + r * .55), py = y + ny * (off + r * .55);
+      if (clear(px, py, r)) { pts.push({ x: px, y: py, r }); break; }
+    }
   }
   pts.sort((a, b) => a.y - b.y).forEach((p, i) => {
     const d = document.createElement('span'); d.className = 'dot';
