@@ -261,7 +261,7 @@ function scatterDots() {
   const hit = (x, y, r) => keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top);
   const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);
   while (pts.length < 22 && tries++ < 3000) {
-    const r = 6 + Math.pow(Math.random(), 1.3) * 8, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
+    const r = 6 + Math.pow(Math.random(), 1.4) * 15, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
     if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 40)) continue;
     pts.push({ x, y, r });
   }

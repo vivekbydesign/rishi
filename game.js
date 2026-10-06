@@ -373,7 +373,7 @@ class Game {
       this.foods = this.foods.filter(f => (f.eaten < 0 || t - f.eaten < .9) && !(f.gone && t - f.gone > .5));
     } else if (this.mode === 'transform') { this.stepTransform(dt); if (this.tf.t > 4.8) this.flit(dt); }
     else if (this.mode === 'rest') this.stepButterfly(dt);
-    else if (this.mode === 'leave') { this.lv.t += dt; const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.t > st + 4.2) this.buildHero(true); }
+    else if (this.mode === 'leave') { this.lv.t += dt; const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.t > st + 5.4) this.buildHero(true); }
     if (this._m !== this.mode) { this._m = this.mode; this.card.classList.toggle('behind', this.mode === 'hero'); }
     this.nShow = lerp(this.nShow, this.fat ? lerp(this.n, 11, ease.inOut(this.fat)) : this.n, 1 - Math.exp(-dt * 6));
     this.wig = Math.max(0, this.wig - dt * .7);
@@ -393,7 +393,7 @@ class Game {
     if (w.gliding) { w.gl = Math.min(1, w.gl + dt * 10); w.sag = Math.min(1, w.sag + dt * 2.2); }
     else {
       w.gl = Math.max(0, w.gl - dt * 10); w.sag = Math.max(0, w.sag - dt * 3);
-      const prev = w.p; w.p += dt * TAU * (2.9 + Math.sin(this.t * 1.7) * .45 + Math.sin(this.t * 4.3) * .2) * w.rate;
+      const prev = w.p; w.p += dt * TAU * (2.4 + Math.sin(this.t * 1.7) * .4 + Math.sin(this.t * 4.3) * .2) * w.rate;
       if (w.want && Math.floor(w.p / TAU) > Math.floor(prev / TAU)) { w.p = Math.floor(w.p / TAU) * TAU; w.want = false; w.gliding = true; w.gt = .2 + this.rng() * .35; }
     }
   }
@@ -418,7 +418,7 @@ class Game {
       f.path = [[f.cx, f.cy], [f.cx, f.cy], [this.W * .8, this.H * .32], [this.W * .2, this.H * .22], [this.W * .62, this.H * .06], [this.W * 1.35, -this.H * .2], [this.W * 1.35, -this.H * .2]];
     }
     this.wingGoal = t < 6.3 ? .42 : 1;
-    if (t > 9.8 && !f.done) { f.done = 1; this.buildHero(true); this.hooks.onTransformDone && this.hooks.onTransformDone(); }
+    if (t > 10.9 && !f.done) { f.done = 1; this.buildHero(true); this.hooks.onTransformDone && this.hooks.onTransformDone(); }
   }
   confetti(x, y, n) {
     const tex = ['apple', 'orange', 'bfyellow', 'blue', 'bfpurple', 'bflime', 'pink', 'teal', 'strawberry'];
@@ -466,7 +466,7 @@ class Game {
         const u = clamp(this.lv.t / em, 0, 1), o = ease.out(u), [ex, ey] = this.lv.path[0];
         CP.drawButterfly(g, ex, ey + (1 - o) * 14, b.w * 1.1 * (.45 + .55 * o), this.flapX(PI * (1 - o) + Math.sin(u * PI * 2) * .5 * (1 - o)), Math.sin(u * PI * 1.5) * .05 * (1 - u), Math.min(1, u * 4));
       } else {
-        const v = clamp(lt / 4.2, 0, 1), e = ease.inOut(v), [px, py] = this.crPoint(this.lv.path, e), [x, y, tilt] = this.flight(px, py, hv ? Math.min(8, 5 + lt * 8) : 8 * Math.min(1, Math.max(0, lt) / .4));
+        const v = clamp(lt / 5.4, 0, 1), e = ease.inOut(v), [px, py] = this.crPoint(this.lv.path, e), [x, y, tilt] = this.flight(px, py, hv ? Math.min(8, 5 + lt * 8) : 8 * Math.min(1, Math.max(0, lt) / .4));
         CP.drawButterfly(g, x, y, b.w * (em ? 1.1 : 1) * (1 - .4 * e), this.wing ? (hv ? this.flapX(this.wing.p) : lerp(1, this.flapX(this.wing.p), Math.min(1, lt / .2))) : 1, tilt);
       } }
     if (this.mode === 'rest') { const b = this.bf; const p = b.p; CP.drawButterfly(g, b.x, b.y + Math.sin(this.t * 1.6) * 2, b.w, this.flapX(p), b.tilt + Math.sin(this.t * .9) * .02, b.alpha); }
@@ -607,7 +607,7 @@ class Game {
         flap = this.wing ? lerp(1, this.flapX(this.wing.p), k) : 1;
       }
       if (f.path && t > 6.3) {
-        const v = clamp((t - 6.3) / 3.5, 0, 1), e = ease.inOut(v), P = f.path, seg = P.length - 3, q = Math.min(seg - 1e-6, e * seg), i = Math.floor(q), l = q - i;
+        const v = clamp((t - 6.3) / 4.6, 0, 1), e = ease.inOut(v), P = f.path, seg = P.length - 3, q = Math.min(seg - 1e-6, e * seg), i = Math.floor(q), l = q - i;
         const cr = (a, b, c, d) => .5 * (2 * b + (-a + c) * l + (2 * a - 5 * b + 4 * c - d) * l * l + (-a + 3 * b - 3 * c + d) * l * l * l);
         const nx = cr(P[i][0], P[i + 1][0], P[i + 2][0], P[i + 3][0]), ny = cr(P[i][1], P[i + 1][1], P[i + 2][1], P[i + 3][1]);
         const k = Math.min(1, .7 + (t - 6.3), (1 - v) * 4); [x, y, tilt] = this.flight(nx, ny, 7 * k); w = restW * (1 - .35 * e);
