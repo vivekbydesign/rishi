@@ -13,6 +13,7 @@
 </head>
 <body>
 <main class="stage">
+  <label id="hapt" aria-hidden="true" style="display:none"><input type="checkbox" switch tabindex="-1"></label>
   <div class="card sheet-open intro-open" id="card">
     <div class="deco" aria-hidden="true">
       <img class="sun" src="assets/sun.png" alt="">
@@ -77,7 +78,7 @@
 
     <div class="banner" id="banner" aria-live="polite"><span class="b-day" id="bDay"></span><span class="b-what" id="bWhat"></span></div>
     <p class="goal" id="goal"><span>Eat all the food to get</span> <b>Rishi’s invite</b></p>
-    <div class="coach" id="coach"><span class="ring"></span><span class="coach-t">Swipe to turn him</span></div>
+    <div class="coach" id="coach"><span class="ring"></span><span class="coach-t">Swipe to turn · avoid the edges</span></div>
 
     <div class="toast" id="toast" role="status"></div>
     <div class="scrim" id="scrim"></div>
@@ -86,7 +87,12 @@
       <div class="grip"></div>
       <canvas class="intro-cat" id="introCat" aria-hidden="true"></canvas>
       <h2 id="introTitle">Rishi is a <em>very</em> hungry caterpillar</h2>
-      <p class="lede">Swipe to steer him through his week of food. Don’t touch the edges! Fastest caterpillar wins.</p>
+      <ul class="rules">
+        <li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14h26M27 8l6 6-6 6"/><path d="M33 26H7M13 20l-6 6 6 6"/></svg><span>Swipe to turn</span></li>
+        <li><img src="assets/f_apple.png" alt=""><span>Eat each day’s food</span></li>
+        <li><svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="30" height="30" rx="4" stroke-dasharray="4 3.2"/><path d="M15 15l10 10M25 15L15 25"/></svg><span>Don’t touch the edges</span></li>
+      </ul>
+      <p class="lede rules-win">Fastest caterpillar wins!</p>
       <form id="nameForm" novalidate>
         <label for="nameInput">Your name</label>
         <input id="nameInput" name="name" autocomplete="given-name" maxlength="20" placeholder="Enter your name" enterkeyhint="go">
@@ -137,8 +143,8 @@
       <h2 id="overTitle">Oops!</h2>
       <p class="over-note">Don’t worry, you’re still invited! Finish all seven days to get on the scoreboard.</p>
       <div class="actions">
-        <button class="btn primary wide" id="overAgain">Try again</button>
-        <button class="btn ghost wide" id="overInvite">See the invite</button>
+        <button class="btn primary wide" id="overAgain"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>Try again</button>
+        <button class="btn ghost wide" id="overInvite"><svg class="btn-ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6.5L20.5 7"/></svg>See the invite</button>
       </div>
     </section>
 

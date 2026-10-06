@@ -87,7 +87,7 @@ let openSheet = $('introSheet');
 const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
-if (fine) document.querySelector('.coach-t').textContent = 'Use the arrow keys to turn';
+if (fine) document.querySelector('.coach-t').textContent = 'Arrow keys to turn · avoid the edges';
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && (game.mode === 'play' || game.mode === 'over')) goInvite(); return; }
   if (!game || openSheet || game.mode !== 'hero' || ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -98,6 +98,9 @@ addEventListener('keydown', e => {
 const hudFoods = d => { const box = $('dayFood'); box.textContent = ''; const uniq = d.foods.length > 5 ? d.foods : d.foods; uniq.forEach(k => { const im = document.createElement('img'); im.src = CP.foodURL(k); im.alt = ''; im.dataset.k = k; if (d.foods.length > 5) im.style.height = '16px'; box.appendChild(im); }); };
 const banner = (day, what, tex, small) => { const b = $('banner'); $('bDay').textContent = day; $('bDay').style.backgroundImage = `url(assets/tex/${tex}.jpg)`; $('bWhat').textContent = what; b.classList.toggle('small', !!small); b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); };
 const BW = ['One apple', 'Two pears', 'Three plums', 'Four strawberries', 'Five oranges', 'A feast!', 'One green leaf'];
+
+// vibrate on Android; iOS Safari (18+) has no vibrate, but toggling a hidden switch plays a system haptic
+const haptic = (pattern, taps = 1) => { if (navigator.vibrate) { navigator.vibrate(pattern); return; } const l = $('hapt'); if (!l) return; for (let i = 0; i < taps; i++) setTimeout(() => { try { l.click(); } catch (e) {} }, i * 110); };
 
 let game;
 const hooks = {
@@ -116,7 +119,7 @@ const hooks = {
   onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
-  onWall() { if (navigator.vibrate) navigator.vibrate([40, 30, 60]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
+  onWall() { haptic([40, 30, 60], 2); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
 };
 
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
@@ -125,13 +128,15 @@ function startGame() {
   show(null); $('toast').classList.remove('show'); audio(); card.classList.add('playing');
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
   game.startPlay();
-  setTimeout(() => { if (game.mode === 'play' && !game.input.down) $('coach').classList.add('show'); }, 3300);
+  setTimeout(() => { if (game.mode === 'play' && !game.input.down) $('coach').classList.add('show'); }, 2600);
   setTimeout(() => $('coach').classList.remove('show'), 9000);
 }
 const flyLater = () => { clearTimeout(state.flyT); state.flyT = setTimeout(() => { if (game.mode === 'rest') game.flyAway(); }, 1700); };
 function goInvite() {
   show(null); $('goal').classList.remove('show'); if (game.mode === 'rest') flyLater(); card.classList.remove('playing', 'metamorph'); $('coach').classList.remove('show');
-  if (['play', 'over', 'transform', 'hatch'].includes(game.mode)) game.buildHero(true);
+  // leaving a run for the invite: the butterfly flutters across the invite, then he crawls back in
+  if (['play', 'over'].includes(game.mode)) { game.flyBy(); shimmer(); }
+  else if (['transform', 'hatch'].includes(game.mode)) game.buildHero(true);
 }
 async function results() {
   const secs = state.lastTime, r = await saveScoreAll(state.name || 'Guest', secs);

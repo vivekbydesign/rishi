@@ -288,3 +288,9 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 @media (prefers-reduced-motion:reduce){.coach .ring{animation:none}}
 .over-note{font-family:var(--hand);font-size:19px;letter-spacing:.04em;line-height:1.3;margin:4px 0 0;color:var(--ink)}
 #overSheet .actions .btn{min-height:54px;flex:0 0 54px}
+/* how to play: three short rules, each with a little picture */
+.rules{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px auto 6px;padding:0;max-width:340px;width:100%}
+.rules li{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;font-family:var(--hand);font-size:16px;letter-spacing:.04em;line-height:1.15;color:var(--ink)}
+.rules svg,.rules img{width:34px;height:34px;object-fit:contain}
+.rules li:nth-child(3) svg{color:var(--red)}
+#introSheet .rules-win{margin:6px auto 14px;font-size:15px}

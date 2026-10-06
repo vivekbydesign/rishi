@@ -404,7 +404,6 @@ class Game {
       g.save(); g.globalAlpha = .22 * (1 - k); g.fillStyle = '#2e8b3a'; g.beginPath(); g.arc(rp.x, rp.y, r, 0, TAU); g.fill();
       g.globalAlpha = .35 * (1 - k); g.strokeStyle = '#2e8b3a'; g.lineWidth = 1.5; g.stroke(); g.restore(); });
     if (this.mode === 'play' || this.mode === 'over' || this.mode === 'transform') this.drawFoods(g);
-    this.drawWallWarn(g);
     this.drawParticles(g, false);
     if (this.hatch) this.drawHatch(g, false);
     if (this.mode === 'hero' || this.mode === 'play' || this.mode === 'over') this.drawCaterpillar(g, this.segPositions());
@@ -447,13 +446,12 @@ class Game {
     for (let i = 0; i < 10; i++) { const a = this.dir + PI + (this.rng() - .5) * 2.2, v = 50 + this.rng() * 110; this.particles.push({ x: h[0], y: h[1], vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.4 + this.rng() * 2.2, col: ['#e2412b', '#4c9a2a', '#f2c230'][i % 3], life: .5 + this.rng() * .4, age: 0, g: 300 }); }
     this.hooks.onWall && this.hooks.onWall(this.score());
   }
-  // a soft red glow creeps in from the edge he is heading toward
-  drawWallWarn(g) {
-    if (this.mode !== 'play' || !this.timing) return; const h = this.at(this.headS), b = this.bounds(), R = 90, dx = Math.cos(this.dir), dy = Math.sin(this.dir);
-    [[dx < -.5, h[0] - b.x0, 0, 0, b.x0 + R, 0], [dx > .5, b.x1 - h[0], this.W, 0, b.x1 - R, 0], [dy < -.5, h[1] - b.y0, 0, b.y0 - 24, 0, b.y0 + R], [dy > .5, b.y1 - h[1], 0, this.H, 0, b.y1 - R]].forEach(([on, d, x0, y0, x1, y1]) => {
-      if (!on || d > R) return; const a = .28 * (1 - d / R) ** 1.5;
-      const gr = g.createLinearGradient(x0, y0, x1 || x0, y1 || y0); gr.addColorStop(0, `rgba(226,65,43,${a})`); gr.addColorStop(1, 'rgba(226,65,43,0)');
-      g.save(); g.fillStyle = gr; g.fillRect(0, 0, this.W, this.H); g.restore(); });
+  // the butterfly drifts in from the left, loops past the 1, and leaves top right
+  flyBy() {
+    this.layout(); const r = this.restPose(), W = this.W, H = this.H;
+    this.bf = Object.assign({ p: 0, burst: 1, alpha: 1 }, r); this.foods = []; this.particles = []; this.ripples = [];
+    this.lv = { t: 0, path: [[-W * .14, H * .46], [-W * .14, H * .46], [W * .22, H * .38], [r.x - 30, r.y + 20], [W * .82, H * .3], [W * .48, H * .12], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] };
+    this.mode = 'leave';
   }
   flyAway() {
     if (this.mode !== 'rest') return;
