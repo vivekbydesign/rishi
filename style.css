@@ -357,3 +357,6 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 #introSheet .rules-txt,#introSheet .rules-txt .prize{font-size:17px;line-height:1.38}
 @media (max-width:370px){#introSheet .rules-txt,#introSheet .rules-txt .prize{font-size:16px}}
 #introSheet{padding-left:26px;padding-right:26px}
+/* yes/no outline sits above the halves so hover/press fills never cover it */
+.rsvp-btns{position:relative;box-shadow:none}
+.rsvp-btns::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 1.5px var(--ink) inset;pointer-events:none;z-index:1}
