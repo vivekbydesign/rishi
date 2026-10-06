@@ -320,3 +320,5 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .foodrow img:nth-child(5){animation-delay:-1.6s;animation-duration:3.1s}
 @keyframes bob{0%,100%{translate:0 0;rotate:-1.5deg}50%{translate:0 -5px;rotate:1.5deg}}
 @media (prefers-reduced-motion:reduce){.foodrow img{animation:none}}
+/* prize line: the one thing to remember */
+.rules-txt .prize{display:inline-block;margin-top:.45em;padding:.18em .7em .22em;border-radius:999px;background:#fde3d6;color:#d4281c;font-weight:700;white-space:nowrap}
