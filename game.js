@@ -51,7 +51,12 @@ class Game {
   // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
   queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
   // after hatching he waits; the first touch (or key) sets him off and starts the clock
-  release() { if (!this.held) return; this.held = false; this.hooks.onRelease && this.hooks.onRelease(); }
+  // first tap starts a short 3-2-1 countdown; the caterpillar moves on "Go!"
+  release() {
+    if (!this.held || this.counting) return;
+    const go = () => { this.counting = false; if (this.mode !== 'play' || !this.held) return; this.held = false; this.hooks.onRelease && this.hooks.onRelease(); };
+    if (this.hooks.onCountdown) { this.counting = true; this.hooks.onCountdown(go); } else go();
+  }
   setTarget() { this.target = { x: clamp(this.input.x, -20, this.W + 20), y: clamp(this.input.y, this.top - 50, this.H), t: this.t }; }
   bottom() { return this.H - 78; }
   bindInput() {
@@ -62,7 +67,7 @@ class Game {
     this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); const dx = this.input.x - sw.x, dy = this.input.y - sw.y;
       if (Math.hypot(dx, dy) > 22) { this.queueTurn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2)); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
     const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return;
-      const h = this.at(this.headS), g = this.lastGoal(); this.ripples.push({ x: this.input.x, y: this.input.y, t: this.t });
+      const h = this.at(this.headS), g = this.lastGoal();
       this.queueTurn(Math.abs(Math.cos(g)) > .5 ? (this.input.y < h[1] ? -PI / 2 : PI / 2) : (this.input.x < h[0] ? PI : 0)); };
     this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', () => { this.input.down = false; });
     this.keys = {};
@@ -161,17 +166,17 @@ class Game {
     const segs = this.inchSegs();
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
-    this.dayI = -1; this.held = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
+    this.dayI = -1; this.held = false; this.counting = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
     this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
   pop() {
     const h = this.hatch, x = h.x, y = h.y; h.popped = this.t;
-    const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 2 + i * .1, y + 36 - i * 1.5]);
+    const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 2 + i * .1, y + 30 - i * 1.9 * this.hatch.sc]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
     this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 4.5; this.phase = 0;
-    this.shrink = { t: 0, R0: 4.5 }; this.mode = 'play'; this.queue = 1.5; this.held = !this.auto;
-    h.shell = { x, y: y - 3 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
+    this.shrink = { t: 0, R0: 4.5 }; this.mode = 'play'; this.queue = 3.2; this.held = !this.auto;
+    h.shell = { x, y: y - 9 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
     for (let i = 0; i < 12; i++) { const a = -PI / 2 + (this.rng() - .5) * 2.4, v = 60 + this.rng() * 120; this.particles.push({ x, y: y - 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.2 + this.rng() * 2, col: '#f4ead2', life: .6 + this.rng() * .4, age: 0, g: 420 }); }
     this.hooks.onHatch && this.hooks.onHatch();
   }
@@ -186,14 +191,14 @@ class Game {
         const d = clamp((t - .75) / .55, 0, 1), drop = (1 - ease.back(d)) * -26 * sc;
         const shiver = [[1.45, 1.75, .1], [2.0, 2.3, .16], [2.45, 2.62, .22]].reduce((m, [s0, s1, A]) => m + (t > s0 && t < s1 ? Math.sin((t - s0) * 34) * A * Math.sin(PI * (t - s0) / (s1 - s0)) : 0), 0);
         const breath = 1 + Math.sin(t * 5) * .015 * clamp(t - 1.3, 0, 1);
-        if (d > 0) img(E.whole, h.x, h.y + 14 * sc + drop, -17, -34, shiver, breath, clamp(d * 4, 0, 1));
+        if (d > 0) img(E.whole, h.x, h.y + 14 * sc + drop, -17, -34, shiver, breath * 1.6, clamp(d * 4, 0, 1));
       }
       return;
     }
     if (!h.popped) return;
     const fade = 1 - clamp((age - 1.1) / .5, 0, 1);
-    if (fade > 0) img(E.bot, h.x, h.y + 14 * sc, -17, -34, Math.sin(age * 18) * .1 * Math.exp(-age * 4), 1, fade);
-    const s = h.shell; if (age < 1.6) img(E.top, s.x, s.y, -17, -20, s.a, 1, 1 - clamp((age - 1) / .6, 0, 1));
+    if (fade > 0) img(E.bot, h.x, h.y + 14 * sc, -17, -34, Math.sin(age * 18) * .1 * Math.exp(-age * 4), 1.6, fade);
+    const s = h.shell; if (age < 1.6) img(E.top, s.x, s.y, -17, -20, s.a, 1.6, 1 - clamp((age - 1) / .6, 0, 1));
   }
   nextDay() {
     this.dayI++;
@@ -213,7 +218,7 @@ class Game {
     return out;
   }
   spawn(keys) {
-    const r = this.rng, head = this.at(this.headS), top = this.top + 44, bot = this.H - 150, n = keys.length;
+    const gid = this.grpN = (this.grpN || 0) + 1, r = this.rng, head = this.at(this.headS), top = this.top + 44, bot = this.H - 150, n = keys.length;
     const scs = keys.map(k => this.fs * (k === 'leaf' ? 3 : 1)), ws = keys.map((k, i) => FOOD[k].w * scs[i]), hs = keys.map((k, i) => FOOD[k].h * scs[i]);
     // lay the bundle out along a line, each piece just kissing the next
     const ang = n === 1 ? 0 : this.dayI === 5 ? (r() - .5) * .12 : [0, 0, PI / 2, .5, -.5][Math.floor(r() * 5)];
@@ -238,10 +243,12 @@ class Game {
     keys.forEach((key, i) => {
       const f = FOOD[key], sc = scs[i];
       const food = { key, x: best[0] + pts[i][0], y: best[1] + pts[i][1], w: f.w * sc, h: f.h * sc, born: this.t + i * .09, rot: (r() - .5) * (n > 1 ? .18 : .3), ph: r() * TAU, eaten: -1, bites: key === 'leaf' ? 4 : 1, biteAt: 0, holes: [], sc };
-      this.foods.push(food);
+      food.grp = gid; this.foods.push(food);
     });
     // Tuesday to Friday a stray Saturday sweet sometimes sneaks in; easy to steer around
-    if (this.dayI >= 1 && this.dayI <= 4 && !this.foods.some(o => o.decoy && o.eaten < 0 && !o.gone) && r() < .5) this.spawnSweet(head);
+    // sweets build up gently through the week: Tue 1, Wed 1, Thu 2, Fri 2
+    const want = [0, 1, 1, 2, 2][this.dayI] || 0, have = this.foods.filter(o => o.decoy && o.eaten < 0 && !o.gone).length;
+    for (let k = have; k < want; k++) this.spawnSweet(head);
   }
   spawnSweet(head) {
     const r = this.rng, key = ['cake', 'icecream', 'lollipop'][Math.floor(r() * 3)], F = FOOD[key], sc = this.fs * .9, w = F.w * sc, h = F.h * sc;
@@ -250,7 +257,7 @@ class Game {
     let best = null, bestS = -Infinity;
     for (let k = 0; k < 120; k++) {
       const x = lerp(w / 2 + 16, this.W - w / 2 - 16, r()), y = lerp(top, bot, r());
-      let d = Math.hypot(x - head[0], y - head[1]); live.forEach(f => { d = Math.min(d, Math.hypot(x - f.x, y - f.y), segD(x, y, head, [f.x, f.y]) + 30); });
+      let d = Math.hypot(x - head[0], y - head[1]); this.foods.forEach(o => { if (o.decoy && o.eaten < 0 && !o.gone) d = Math.min(d, Math.hypot(x - o.x, y - o.y)); }); live.forEach(f => { d = Math.min(d, Math.hypot(x - f.x, y - f.y), segD(x, y, head, [f.x, f.y]) + 30); });
       if (d > bestS) { bestS = d; best = [x, y]; }
     }
     if (!best || bestS < 90) return;
@@ -286,7 +293,7 @@ class Game {
     if (!onBoard) this.foods.forEach(o => { if (o.decoy && o.eaten < 0 && !o.gone) o.gone = this.t; });
     if (!onBoard && this.pending && this.pending.length) this.spawnAt = this.t + .28;
     const left = onBoard + (this.pending ? this.pending.reduce((a, g) => a + g.length, 0) : 0);
-    this.hooks.onEat && this.hooks.onEat(f.key, left, this.dayI);
+    this.hooks.onEat && this.hooks.onEat(f.key, left, f.grp);
     if (left === 0) {
       if (this.dayI === 5) { this.queue = 2.2; this.ache = this.t; this.fatOn = this.t + 1.9; this.hooks.onAche && this.hooks.onAche(); }
       else if (this.dayI === 6) { this.foods = this.foods.filter(o => !o.decoy); this.timing = false; this.hooks.onFinish && this.hooks.onFinish(this.score(), this.bumps, this.aches); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
@@ -366,7 +373,7 @@ class Game {
       this.foods = this.foods.filter(f => (f.eaten < 0 || t - f.eaten < .9) && !(f.gone && t - f.gone > .5));
     } else if (this.mode === 'transform') { this.stepTransform(dt); if (this.tf.t > 4.8) this.flit(dt); }
     else if (this.mode === 'rest') this.stepButterfly(dt);
-    else if (this.mode === 'leave') { this.flit(dt); this.lv.t += dt; if (this.lv.t > 4.2) this.buildHero(true); }
+    else if (this.mode === 'leave') { this.lv.t += dt; const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.t > st + 4.2) this.buildHero(true); }
     if (this._m !== this.mode) { this._m = this.mode; this.card.classList.toggle('behind', this.mode === 'hero'); }
     this.nShow = lerp(this.nShow, this.fat ? lerp(this.n, 11, ease.inOut(this.fat)) : this.n, 1 - Math.exp(-dt * 6));
     this.wig = Math.max(0, this.wig - dt * .7);
@@ -381,12 +388,12 @@ class Game {
   // a real butterfly flits: uneven wingbeats, short open-wing glides, and the body lifts on every downstroke
   flit(dt) {
     const w = this.wing || (this.wing = { p: 0, gl: 0, gliding: false, want: false, gt: .7, sag: 0, tilt: 0, px: null, dt });
-    w.dt = dt; w.gt -= dt;
+    w.dt = dt; w.gt -= dt; w.rate = w.rate == null ? (this.wingGoal ?? 1) : w.rate + ((this.wingGoal ?? 1) - w.rate) * Math.min(1, dt * 2.5);
     if (w.gt < 0) { if (w.gliding) { w.gliding = false; w.gt = .5 + this.rng() * 1.1; } else w.want = true; }
     if (w.gliding) { w.gl = Math.min(1, w.gl + dt * 10); w.sag = Math.min(1, w.sag + dt * 2.2); }
     else {
       w.gl = Math.max(0, w.gl - dt * 10); w.sag = Math.max(0, w.sag - dt * 3);
-      const prev = w.p; w.p += dt * TAU * (2.9 + Math.sin(this.t * 1.7) * .45 + Math.sin(this.t * 4.3) * .2);
+      const prev = w.p; w.p += dt * TAU * (2.9 + Math.sin(this.t * 1.7) * .45 + Math.sin(this.t * 4.3) * .2) * w.rate;
       if (w.want && Math.floor(w.p / TAU) > Math.floor(prev / TAU)) { w.p = Math.floor(w.p / TAU) * TAU; w.want = false; w.gliding = true; w.gt = .2 + this.rng() * .35; }
     }
   }
@@ -410,7 +417,8 @@ class Game {
       this.layout(); const r = this.restPose(); f.rest = r; this.hooks.onFly && this.hooks.onFly();
       f.path = [[f.cx, f.cy], [f.cx, f.cy], [this.W * .8, this.H * .32], [this.W * .2, this.H * .22], [this.W * .62, this.H * .06], [this.W * 1.35, -this.H * .2], [this.W * 1.35, -this.H * .2]];
     }
-    if (t > 8.3 && !f.done) { f.done = 1; this.buildHero(true); this.hooks.onTransformDone && this.hooks.onTransformDone(); }
+    this.wingGoal = t < 6.3 ? .42 : 1;
+    if (t > 9.8 && !f.done) { f.done = 1; this.buildHero(true); this.hooks.onTransformDone && this.hooks.onTransformDone(); }
   }
   confetti(x, y, n) {
     const tex = ['apple', 'orange', 'bfyellow', 'blue', 'bfpurple', 'bflime', 'pink', 'teal', 'strawberry'];
@@ -450,8 +458,17 @@ class Game {
     if (this.mode === 'hero' || this.mode === 'play' || this.mode === 'over') this.drawCaterpillar(g, this.segPositions());
     if (this.hatch) this.drawHatch(g, true);
     if (this.mode === 'transform') this.drawTransform(g);
-    if (this.mode === 'leave') { const b = this.bf, v = clamp(this.lv.t / 4.2, 0, 1), e = ease.inOut(v), [px, py] = this.crPoint(this.lv.path, e), [x, y, tilt] = this.flight(px, py, 8 * Math.min(1, Math.max(0, this.lv.t) / .4));
-      CP.drawButterfly(g, x, y, b.w * (1 - .4 * e), this.wing ? this.flapX(this.wing.p) : 1, tilt); }
+    if (this.mode === 'leave') { const b = this.bf, em = this.lv.em || 0, hv = this.lv.hv || 0, lt = this.lv.t - em - hv;
+      if (lt < 0 && this.lv.t >= em) { // hovering in place, gently flapping
+        const k = Math.min(1, (this.lv.t - em) / .5), [ex, ey] = this.lv.path[0], [x, y, tilt] = this.flight(ex, ey, 5 * k);
+        CP.drawButterfly(g, x, y, b.w * 1.1, this.wing ? lerp(1, this.flapX(this.wing.p), k) : 1, tilt * .4);
+      } else if (lt < 0) { // emerging: wings unfold from a closed fold in the middle of a blank page
+        const u = clamp(this.lv.t / em, 0, 1), o = ease.out(u), [ex, ey] = this.lv.path[0];
+        CP.drawButterfly(g, ex, ey + (1 - o) * 14, b.w * 1.1 * (.45 + .55 * o), this.flapX(PI * (1 - o) + Math.sin(u * PI * 2) * .5 * (1 - o)), Math.sin(u * PI * 1.5) * .05 * (1 - u), Math.min(1, u * 4));
+      } else {
+        const v = clamp(lt / 4.2, 0, 1), e = ease.inOut(v), [px, py] = this.crPoint(this.lv.path, e), [x, y, tilt] = this.flight(px, py, hv ? Math.min(8, 5 + lt * 8) : 8 * Math.min(1, Math.max(0, lt) / .4));
+        CP.drawButterfly(g, x, y, b.w * (em ? 1.1 : 1) * (1 - .4 * e), this.wing ? (hv ? this.flapX(this.wing.p) : lerp(1, this.flapX(this.wing.p), Math.min(1, lt / .2))) : 1, tilt);
+      } }
     if (this.mode === 'rest') { const b = this.bf; const p = b.p; CP.drawButterfly(g, b.x, b.y + Math.sin(this.t * 1.6) * 2, b.w, this.flapX(p), b.tilt + Math.sin(this.t * .9) * .02, b.alpha); }
     this.drawParticles(g, true);
   }
@@ -488,9 +505,10 @@ class Game {
     this.hooks.onWall && this.hooks.onWall(this.score());
   }
   // the butterfly drifts in from the left, loops past the 1, and leaves top right
-  flyBy() {
+  flyBy(emerge) {
     this.layout(); const r = this.restPose(), W = this.W, H = this.H;
     this.bf = Object.assign({ p: 0, burst: 1, alpha: 1 }, r); this.foods = []; this.particles = []; this.ripples = [];
+    if (emerge) { this.lv = { t: 0, em: 1.3, hv: 1.5, path: [[W * .5, H * .44], [W * .5, H * .44], [W * .3, H * .3], [W * .62, H * .2], [W * .86, H * .32], [W * .7, H * .08], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] }; this.wing = null; this.mode = 'leave'; return; }
     this.lv = { t: -.35, path: [[-W * .14, H * .46], [-W * .14, H * .46], [W * .22, H * .38], [r.x - 30, r.y + 20], [W * .82, H * .3], [W * .48, H * .12], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] };
     this.wing = null; this.mode = 'leave';
   }
@@ -584,12 +602,16 @@ class Game {
     if (t > 3.85) {
       const u = clamp((t - 3.85) / 1.05, 0, 1), restW = Math.min(this.W * .64, 270);
       let x = f.cx, y = f.cy + 6, w = restW * (.55 + .45 * ease.out(u)), flap = u < 1 ? this.flapX(PI * (1 - ease.out(u))) : 1, tilt = 0;
-      if (f.path && t > 4.8) {
-        const v = clamp((t - 4.8) / 3.5, 0, 1), e = ease.inOut(v), P = f.path, seg = P.length - 3, q = Math.min(seg - 1e-6, e * seg), i = Math.floor(q), l = q - i;
+      if (f.path && t > 4.8 && t <= 6.3) { // hovers in place, wings slowly opening and closing, before it takes off
+        const k = Math.min(1, (t - 4.8) / .6); [x, y, tilt] = this.flight(f.cx, f.cy + 6 * clamp((6.3 - t) / 1.4, 0, 1), 5 * k); tilt *= .4;
+        flap = this.wing ? lerp(1, this.flapX(this.wing.p), k) : 1;
+      }
+      if (f.path && t > 6.3) {
+        const v = clamp((t - 6.3) / 3.5, 0, 1), e = ease.inOut(v), P = f.path, seg = P.length - 3, q = Math.min(seg - 1e-6, e * seg), i = Math.floor(q), l = q - i;
         const cr = (a, b, c, d) => .5 * (2 * b + (-a + c) * l + (2 * a - 5 * b + 4 * c - d) * l * l + (-a + 3 * b - 3 * c + d) * l * l * l);
         const nx = cr(P[i][0], P[i + 1][0], P[i + 2][0], P[i + 3][0]), ny = cr(P[i][1], P[i + 1][1], P[i + 2][1], P[i + 3][1]);
-        const k = Math.min(1, (t - 4.8) / .5, (1 - v) * 4); [x, y, tilt] = this.flight(nx, ny, 7 * k); w = restW * (1 - .35 * e);
-        flap = this.wing ? lerp(1, this.flapX(this.wing.p), Math.min(1, (t - 4.8) / .25)) : 1;
+        const k = Math.min(1, .7 + (t - 6.3), (1 - v) * 4); [x, y, tilt] = this.flight(nx, ny, 7 * k); w = restW * (1 - .35 * e);
+        flap = this.wing ? this.flapX(this.wing.p) : 1;
       }
       CP.drawButterfly(g, x, y, w, flap, tilt);
     }
