@@ -360,3 +360,17 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 /* yes/no outline sits above the halves so hover/press fills never cover it */
 .rsvp-btns{position:relative;box-shadow:none}
 .rsvp-btns::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 1.5px var(--ink) inset;pointer-events:none;z-index:1}
+/* swipe hint: a little dot streaks up, down, left, right in turn, leaving a soft tail */
+.swipe{display:block;position:relative;width:64px;height:56px;flex:none}
+.swipe b{position:absolute;left:50%;top:50%;opacity:0;animation:sw 3.6s var(--ease-out) infinite}
+.swipe b::after{content:"";position:absolute;width:13px;height:13px;margin:-6.5px;border-radius:50%;background:var(--green);box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.swipe b::before{content:"";position:absolute;right:0;top:-5px;width:30px;height:10px;border-radius:5px;background:linear-gradient(90deg,rgba(31,122,46,0),rgba(31,122,46,.5));transform-origin:100% 50%;animation:swt 3.6s var(--ease-out) infinite}
+.swipe b:nth-child(1){--r:-90deg}
+.swipe b:nth-child(2){--r:90deg;animation-delay:.9s}.swipe b:nth-child(2)::before{animation-delay:.9s}
+.swipe b:nth-child(3){--r:180deg;animation-delay:1.8s}.swipe b:nth-child(3)::before{animation-delay:1.8s}
+.swipe b:nth-child(4){--r:0deg;animation-delay:2.7s}.swipe b:nth-child(4)::before{animation-delay:2.7s}
+@keyframes sw{0%{opacity:0;transform:rotate(var(--r)) translateX(-18px)}4%{opacity:1}17%{opacity:1;transform:rotate(var(--r)) translateX(16px)}23%,100%{opacity:0;transform:rotate(var(--r)) translateX(19px)}}
+@keyframes swt{0%{transform:scaleX(0)}12%{transform:scaleX(1)}23%,100%{transform:scaleX(.2)}}
+@media (prefers-reduced-motion:reduce){.swipe b{animation:none}.swipe b:nth-child(4){opacity:1}.swipe b::before{animation:none}}
+/* coach sits just above the day banner so they never overlap */
+.coach{bottom:calc(var(--safe-b) + 240px)}
