@@ -131,7 +131,7 @@ const hooks = {
   onEat(key, left, grp) { if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
-  onRelease() { clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 1500); },
+  onRelease() { clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 4000); },
   onCountdown(go) {
     const cd = $('countdown'), num = $('cdNum'), tok = ++state.cdTok;
     const steps = [['3', 'red'], ['2', 'orange'], ['1', 'green'], ['Go!', 'blue']];
@@ -145,7 +145,7 @@ const hooks = {
   },
   onSpawn() {},
   onHatchStart() { banner('One night…', 'a little egg lay on a leaf', 'plum', true); },
-  onHatch() { if (navigator.vibrate) navigator.vibrate(18); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(0, true); }, 1300); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) { coach(1, true); game.release(); } }, 1300); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
