@@ -10,7 +10,7 @@ const state = { name: localStorage.getItem(NAME_KEY) || '', lastMs: 0, muted: lo
 /* links */
 const MAP = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('2459 NE Daphne St, Issaquah, WA');
 $('mapLink').href = MAP; $('mapLink2').href = MAP;
-const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Rishi//Invite//EN', 'BEGIN:VEVENT', 'UID:rishi-first-birthday-20261122@invite', 'DTSTAMP:20260101T000000Z', 'DTSTART:20261122T230000Z', 'DTEND:20261123T010000Z', "SUMMARY:Rishi's first birthday", 'LOCATION:2459 NE Daphne St\\, Issaquah\\, WA', 'DESCRIPTION:One very hungry little caterpillar is turning one!', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Rishi//Invite//EN', 'BEGIN:VEVENT', 'UID:rishi-first-birthday-20261122@invite', 'DTSTAMP:20260101T000000Z', 'DTSTART:20261122T190000Z', 'DTEND:20261122T210000Z', "SUMMARY:Rishi's first birthday", 'LOCATION:2459 NE Daphne St\\, Issaquah\\, WA', 'DESCRIPTION:One very hungry little caterpillar is turning one!', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
 $('calLink').href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
 
 /* RISHI letters in painted paper */
@@ -166,7 +166,7 @@ const paintRsvp = pop => { const r = readRsvp(), d = $('rsvpDone');
 const setGo = go => { rs.go = go; $('rsvpSheet').classList.toggle('no', go === 'no');
   document.querySelectorAll('#rsvpSheet .seg button').forEach(b => b.setAttribute('aria-checked', b.dataset.go === go));
   $('rsvpTitle').textContent = go === 'yes' ? 'Yay, see you there!' : "We'll miss you!";
-  $('rsvpSub').textContent = go === 'yes' ? 'Sunday, Nov 22 at 3 PM · 2459 NE Daphne St' : "Thanks for letting us know.";
+  $('rsvpSub').textContent = go === 'yes' ? 'Sunday, Nov 22 at 11 AM · 2459 NE Daphne St' : "Thanks for letting us know.";
   $('rsvpSend').textContent = go === 'yes' ? 'Send RSVP' : 'Send'; };
 const paintCount = () => { $('cA').textContent = rs.a; $('cK').textContent = rs.k;
   document.querySelectorAll('.st-b').forEach(b => { const v = rs[b.dataset.k], d = +b.dataset.d; b.disabled = d < 0 ? v <= (b.dataset.k === 'a' ? 1 : 0) : v >= 10; }); };
@@ -239,9 +239,9 @@ function scatterDots() {
   ['.deco .sun', '.deco .branch'].forEach(q => { const el = card.querySelector(q); if (el) keep.push(el.getBoundingClientRect()); });
   const hit = (x, y, r) => keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top);
   const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);
-  while (pts.length < 30 && tries++ < 1500) {
-    const r = 6 + Math.random() * 3.5, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
-    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < 48)) continue;
+  while (pts.length < 16 && tries++ < 1500) {
+    const r = 10 + Math.random() * 5, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
+    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < 78)) continue;
     pts.push({ x, y, r });
   }
   pts.sort((a, b) => a.y - b.y).forEach((p, i) => {
@@ -262,7 +262,7 @@ function introCat() {
     g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
     const total = gap * n + fake.R * 1.6, x0 = (W - total) / 2 + r, base = H * .6, segs = [];
     for (let i = 0; i < n; i++) { const x = x0 + (n - 1 - i) * gap, k = (n - 1 - i) / n, y = base - Math.max(0, Math.sin(k * Math.PI * 1.6 - t * 3.2)) * r * .9;
-      segs.push({ x, y, r, a: 0, ground: y > base - r * .3 }); }
+      segs.push({ x, y, r, a: 0, ground: false }); }
     const hx = x0 + n * gap - gap * .2 + fake.R * .35, hy = base - fake.R * .45 + Math.sin(t * 2.2) * 1.5;
     try { CP.Game.prototype.drawCaterpillar.call(fake, g, segs, 1, [hx, hy]); } catch (e) { console.error(e); return; }
     requestAnimationFrame(frame);
