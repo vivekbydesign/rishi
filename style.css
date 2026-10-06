@@ -346,3 +346,5 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 #introSheet .rules-txt span{text-wrap:wrap}
 #introSheet .rules-txt .prize{display:block;margin-top:.15em}
 #introSheet .rules-txt span:not(.prize){display:inline}
+.ctrl-r{display:flex;gap:8px}
+.ctrl .restart{padding:0 16px 0 12px;gap:6px}

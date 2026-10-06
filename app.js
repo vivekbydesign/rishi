@@ -149,7 +149,7 @@ const hooks = {
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
-  show(null); $('toast').classList.remove('show'); loadChomp(audio()); card.classList.add('playing');
+  show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); loadChomp(audio()); card.classList.add('playing');
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
   game.startPlay();
 }
@@ -237,6 +237,7 @@ $('overAgain').onclick = () => startGame();
 $('overInvite').onclick = () => goInvite();
 $('scPlay').onclick = () => state.name ? startGame() : show('introSheet');
 $('quitBtn').onclick = () => goInvite();
+$('restartBtn').onclick = () => { if (['play', 'over', 'hatch'].includes(game.mode)) startGame(); };
 $('nameInput').value = state.name;
 
 /* the slab "1": crop the SVG to the glyph's ink so layout lines up with what you see */
