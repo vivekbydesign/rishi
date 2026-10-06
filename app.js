@@ -270,8 +270,8 @@ function scatterDots() {
   const R = sh.getBoundingClientRect(); if (!R.width) return;
   // dots ring the card evenly: walk its outline and drop one every so often, some tucked under the edge
   const c = sh.querySelector('.intro-card').getBoundingClientRect(), L = c.left - R.left, T = c.top - R.top, Rt = c.right - R.left, B = c.bottom - R.top, W = R.width, H = R.height;
-  const per = 2 * (c.width + c.height), N = 24, pts = []; let ci = Math.floor(Math.random() * DOT_TEX.length);
-  const clear = (x, y, r) => x - r > 4 && x + r < W - 4 && y - r > 4 && y + r < H - 4 && !pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 14);
+  const per = 2 * (c.width + c.height), N = 17, pts = []; let ci = Math.floor(Math.random() * DOT_TEX.length);
+  const clear = (x, y, r) => x - r > 4 && x + r < W - 4 && y - r > 4 && y + r < H - 4 && !pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 34);
   for (let i = 0; i < N; i++) {
     for (let k = 0; k < 40; k++) {
       const d = ((i + .2 + Math.random() * .6) / N) * per; let x, y, nx, ny, room;
