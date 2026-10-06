@@ -81,10 +81,17 @@ const API = (window.API || '').replace(/\/+$/, '');
 const post = (path, data) => API ? fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(data) }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null);
 const within = (p, ms) => Promise.race([p, new Promise(r => setTimeout(() => r(null), ms))]);
 // local copy answers instantly; the shared board (when API is set) is the source of truth
-const saveScoreAll = async (name, t) => { const local = saveScore(name, t); const remote = await within(post('/scores', { name, t }), 2500); return remote && remote.rank ? remote : local; };
-const loadRemote = async () => { if (!API) return null; try { const r = await within(fetch(API + '/scores', { cache: 'no-store' }), 4000); return r && r.ok ? await r.json() : null; } catch (e) { return null; } };
+const saveScoreAll = async (name, t) => { const local = saveScore(name, t); const remote = await within(post('/scores', { name, t }), 2500); loadRemote(); return remote && remote.rank ? remote : local; };
+// the shared board is fetched early and kept in localStorage so the sheet opens with everyone already there
+const BOARD_KEY = 'rishi1.board';
+const cachedBoard = () => { try { const l = JSON.parse(localStorage.getItem(BOARD_KEY)); return Array.isArray(l) ? l : null; } catch (e) { return null; } };
+const mergeMine = list => { const mine = readScores(); if (!mine.length) return list; const m = new Map(list.map(s => [s.name.toLowerCase(), s])); mine.forEach(s => { const k = s.name.toLowerCase(), o = m.get(k); if (!o || s.t < o.t) m.set(k, s); }); return [...m.values()].sort((a, b) => a.t - b.t); };
+let remoteP = null;
+const loadRemote = () => { if (!API) return Promise.resolve(null); if (remoteP) return remoteP;
+  remoteP = (async () => { try { const r = await within(fetch(API + '/scores', { cache: 'no-store' }), 4000); const l = r && r.ok ? await r.json() : null; if (Array.isArray(l)) localStorage.setItem(BOARD_KEY, JSON.stringify(l)); return l; } catch (e) { return null; } finally { setTimeout(() => { remoteP = null; }, 1500); } })();
+  return remoteP; };
 const MEDAL = ['strawberry', 'orange', 'apple'];
-const renderBoard = async () => { paintBoard(readScores()); const remote = await loadRemote(); if (remote && openSheet && openSheet.id === 'scoreSheet') paintBoard(remote); };
+const renderBoard = async () => { const c = cachedBoard(); paintBoard(c ? mergeMine(c) : readScores()); const remote = await loadRemote(); if (remote && openSheet && openSheet.id === 'scoreSheet') paintBoard(remote); };
 const paintBoard = list => {
   const ol = $('board'); ol.textContent = '';
   if (!list.length) { const li = document.createElement('li'); li.className = 'empty'; li.innerHTML = '<img src="assets/f_strawberry.png" alt=""><p></p>'; li.querySelector('p').textContent = 'No one has fed the caterpillar yet. Be the first!'; ol.appendChild(li); return; }
@@ -261,12 +268,13 @@ const DOT_TEX = ['violet', 'blue', 'red', 'green', 'orange', 'yellow', 'teal'];
 function scatterDots() {
   const box = $('dots'), sh = $('introSheet'); box.textContent = '';
   const R = sh.getBoundingClientRect(); if (!R.width) return;
-  const pad = 30, keep = [...sh.children].filter(el => el !== box && el.offsetParent).map(el => el.getBoundingClientRect());
-  const hit = (x, y, r) => keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top);
+  // dots sit around the card; a few tuck slightly under its edge
+  const keep = [...sh.children].filter(el => el !== box && el.offsetParent).map(el => el.getBoundingClientRect());
+  const hit = (x, y, r) => { const pad = 14 - r * .9; return keep.some(b => x + r + pad > b.left - R.left && x - r - pad < b.right - R.left && y + r + pad > b.top - R.top && y - r - pad < b.bottom - R.top); };
   const pts = []; let tries = 0, ci = Math.floor(Math.random() * DOT_TEX.length);
   while (pts.length < 22 && tries++ < 3000) {
     const r = 6 + Math.pow(Math.random(), 1.4) * 15, x = r + 6 + Math.random() * (R.width - 2 * r - 12), y = r + 6 + Math.random() * (R.height - 2 * r - 12);
-    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 40)) continue;
+    if (hit(x, y, r) || pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 28)) continue;
     pts.push({ x, y, r });
   }
   pts.sort((a, b) => a.y - b.y).forEach((p, i) => {
@@ -304,6 +312,7 @@ function introCat() {
   fitOne();
   // every fruit in the row has the caterpillar's hole, like the book
   document.querySelectorAll('.foodrow img').forEach(im => { const k = im.src.match(/f_(\w+)\.png/)[1], f = CP.FOOD[k]; if (f && f.eaten !== f.img) im.src = f.eaten.toDataURL('image/png'); });
+  loadRemote();
   card.classList.remove('boot'); card.classList.add('ready');
   await new Promise(r => setTimeout(r, 60));
   game = window.__game = new CP.Game($('cv'), card, hooks);

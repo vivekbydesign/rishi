@@ -174,8 +174,8 @@ class Game {
     const h = this.hatch, x = h.x, y = h.y; h.popped = this.t;
     const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 2 + i * .1, y + 30 - i * 1.9 * this.hatch.sc]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
-    this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 4.5; this.phase = 0;
-    this.shrink = { t: 0, R0: 4.5 }; this.mode = 'play'; this.queue = 3.2; this.held = !this.auto;
+    this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 13; this.phase = 0;
+    this.shrink = null; this.mode = 'play'; this.queue = 3.2; this.held = !this.auto;
     h.shell = { x, y: y - 9 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
     for (let i = 0; i < 12; i++) { const a = -PI / 2 + (this.rng() - .5) * 2.4, v = 60 + this.rng() * 120; this.particles.push({ x, y: y - 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.2 + this.rng() * 2, col: '#f4ead2', life: .6 + this.rng() * .4, age: 0, g: 420 }); }
     this.hooks.onHatch && this.hooks.onHatch();
