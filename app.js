@@ -116,11 +116,9 @@ const hooks = {
   onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
-  onWall() { if (navigator.vibrate) navigator.vibrate([40, 30, 60]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show');
-    const d = DAYS_DONE(); $('overSub').textContent = d ? `He bumped into the edge on ${d}.` : 'He bumped into the edge.'; clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
+  onWall() { if (navigator.vibrate) navigator.vibrate([40, 30, 60]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
 };
 
-const DAYS_DONE = () => $('dayName').textContent.match(/day$/) ? $('dayName').textContent : '';
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {

@@ -204,7 +204,7 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.15s!important}
 }
-@media (max-height:720px){.foodrow{display:none}}
+@media (max-height:720px){.foodrow{height:5.2cqh;margin-top:1.2cqh}}
 .hidden{display:none!important}
 .metamorph .dock{transform:translateY(140%);opacity:0;pointer-events:none}
 .behind .hero{z-index:2}
@@ -267,11 +267,11 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 #scoreSheet{top:25%}
 .sheet.dragging{transition:none}
 .hud .timer{display:flex;align-items:center;justify-content:center;height:44px;padding:0 14px;border-radius:22px;background:#fff;box-shadow:0 0 0 2px var(--ink) inset;min-width:68px}
-/* 1 on top, then "join us to celebrate / our very hungry caterpillar / RISHI" reads as one line */
-.hero{margin-top:auto;height:31cqh}
+/* join us to celebrate, then the 1, then our very hungry caterpillar / RISHI */
+.hero{margin-top:0;height:27.5cqh}
 .hero .one{height:26cqh}
-.arch.arch-top{margin-top:1.8cqh;width:min(74cqw,330px)}
-.arch-top + .sr + .arch{margin-top:.2cqh}
+.arch.arch-top{margin-top:auto;width:min(74cqw,330px)}
+.hero + .arch{margin-top:1.8cqh}
 /* sent RSVP: one tappable bubble, tap to edit */
 .rsvp-done{flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;height:56px;min-height:0;padding:0 14px 0 12px;border-radius:28px;background:#fff;box-shadow:0 0 0 1.5px var(--ink) inset;cursor:pointer;text-align:left;transition:transform .2s var(--ease-out)}
 .rsvp-done:active{transform:scale(.97)}
@@ -286,5 +286,5 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 @keyframes swipehint{0%{transform:translateX(-34px) scale(.7);opacity:0}25%{opacity:1;transform:translateX(-26px) scale(1)}75%{opacity:1}100%{transform:translateX(34px) scale(.8);opacity:0}}
 #overSheet .actions{display:flex;flex-direction:column;gap:10px;margin-top:14px}
 @media (prefers-reduced-motion:reduce){.coach .ring{animation:none}}
-.over-note{font-family:var(--hand);font-size:19px;letter-spacing:.04em;line-height:1.3;margin:10px 0 0;color:var(--ink)}
+.over-note{font-family:var(--hand);font-size:19px;letter-spacing:.04em;line-height:1.3;margin:4px 0 0;color:var(--ink)}
 #overSheet .actions .btn{min-height:54px;flex:0 0 54px}
