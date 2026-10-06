@@ -111,8 +111,8 @@ const haptic = (pattern, taps = 1) => { if (navigator.vibrate) { navigator.vibra
 
 let game;
 const hooks = {
-  onDay(i, d) { $('dayName').textContent = d.day; hudFoods(d); banner('On ' + d.day, BW[i], d.tex); chime(); },
-  onEat(key, left) { munch(); if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
+  onDay(i, d) { state.munchDay = -1; $('dayName').textContent = d.day; hudFoods(d); banner('On ' + d.day, BW[i], d.tex); chime(); },
+  onEat(key, left, day) { if (day !== state.munchDay) { state.munchDay = day; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
   onRelease() { $('coach').classList.remove('show'); },
