@@ -95,7 +95,8 @@ let remoteP = null;
 const loadRemote = () => { if (!API) return Promise.resolve(null); if (remoteP) return remoteP;
   remoteP = (async () => { try { const r = await within(fetch(API + '/scores', { cache: 'no-store' }), 4000); const l = r && r.ok ? await r.json() : null; if (Array.isArray(l)) localStorage.setItem(BOARD_KEY, JSON.stringify(l)); return l; } catch (e) { return null; } finally { setTimeout(() => { remoteP = null; }, 1500); } })();
   return remoteP; };
-const MEDAL = ['strawberry', 'orange', 'apple'], REST = ['pear', 'plum'];
+const MEDAL = ['strawberry', 'orange', 'apple'], REST = ['pear', 'plum'],
+  TROPHY = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5h6v2.6a3 3 0 0 1-6 0zM3 2.5H1.4a1.9 1.9 0 0 0 1.9 2.4M9 2.5h1.6a1.9 1.9 0 0 1-1.9 2.4M6 7v2M4 10.5h4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const renderBoard = async () => { const c = cachedBoard(); paintBoard(c ? mergeMine(c) : readScores()); const remote = await loadRemote(); if (remote && openSheet && openSheet.id === 'scoreSheet') paintBoard(remote); };
 const paintBoard = list => {
   const ol = $('board'); ol.textContent = '';
@@ -103,7 +104,8 @@ const paintBoard = list => {
   list.slice(0, 30).forEach((s, i) => {
     const li = document.createElement('li'); if (state.name && s.name.toLowerCase() === state.name.toLowerCase()) li.className = 'me';
     const rk = document.createElement('span'); rk.className = 'rk'; const im = document.createElement('img'); im.src = `assets/f_${i < 3 ? MEDAL[i] : REST[(i - 3) % REST.length]}.png`; im.alt = '#' + (i + 1); rk.appendChild(im);
-    if (i >= 3) { rk.classList.add('more'); const n = document.createElement('b'); n.textContent = i + 1; n.setAttribute('aria-hidden', 'true'); rk.appendChild(n); }
+    if (i >= 3) rk.classList.add('more');
+    const n = document.createElement('b'); n.setAttribute('aria-hidden', 'true'); if (i === 0) { n.className = 'gold'; n.innerHTML = TROPHY; } n.append(i + 1); rk.appendChild(n);
     const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = s.name;
     const tm = document.createElement('span'); tm.className = 'tm'; tm.textContent = fmt(s.t) + 's';
     li.append(rk, nm, tm); ol.appendChild(li);

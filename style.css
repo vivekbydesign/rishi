@@ -418,4 +418,7 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 /* ranks 4+: a smaller fruit with the rank number tucked on it */
 .board .rk{position:relative}
 .board .rk.more img{height:30px}
-.board .rk.more b{position:absolute;right:-2px;bottom:-1px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#fffdf6;color:var(--muted);font:700 11px/18px var(--round);text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
+.board .rk b{position:absolute;right:-2px;bottom:-1px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#fffdf6;color:var(--muted);font:700 11px/18px var(--round);text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.18);font-variant-numeric:tabular-nums}
+
+.board .rk b.gold{display:flex;align-items:center;gap:2px;padding:0 5px 0 4px;background:#f6c544;color:#5a3d00;right:-6px}
+.board .rk b.gold svg{width:11px;height:11px}
