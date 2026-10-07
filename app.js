@@ -110,7 +110,7 @@ const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); i
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
 const COACH = fine ? ['Arrow keys to move, avoid the edges', 'Arrow keys to move, avoid the edges'] : ['Swipe to move, avoid the edges', 'Swipe to move, avoid the edges'];
-const coach = (i, on) => { document.querySelector('.coach-t').textContent = COACH[i]; $('coach').classList.toggle('show', on); };
+const coach = (i, on) => { const t = document.querySelector('.coach-t'); if (t.dataset.txt !== COACH[i]) { t.dataset.txt = COACH[i]; t.setAttribute('aria-label', COACH[i]); t.innerHTML = [...COACH[i]].map((c, k) => `<span aria-hidden="true" style="--k:${k}">${c === ' ' ? '&nbsp;' : c}</span>`).join(''); } $('coach').classList.toggle('show', on); };
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && (game.mode === 'play' || game.mode === 'over')) goInvite(); return; }
   if (!game || openSheet || game.mode !== 'hero' || ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -171,7 +171,7 @@ const hooks = {
   onGoNow() { if (game.mode === 'play') goFlash(); },
   onSpawn() {},
   onHatchStart() { banner('One day…', 'a little egg lay on a leaf', 'plum', 'hold'); },
-  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(1, true); }, 900); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(1, true); }, 3100); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
