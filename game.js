@@ -385,7 +385,7 @@ class Game {
       this.foods = this.foods.filter(f => (f.eaten < 0 || t - f.eaten < .9) && !(f.gone && t - f.gone > .5));
     } else if (this.mode === 'transform') { this.stepTransform(dt); if (this.tf.t > 4.8) this.flit(dt); }
     else if (this.mode === 'rest') this.stepButterfly(dt);
-    else if (this.mode === 'leave') { this.lv.t += dt; if (this.lv.em && !this.lv.burst && this.lv.t > this.lv.em * .55) { this.lv.burst = 1; this.confetti(this.lv.path[0][0], this.lv.path[0][1] + 10, 70); } const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.t > st + 5.4) this.buildHero(true); }
+    else if (this.mode === 'leave') { this.lv.t += dt; if (this.lv.em && !this.lv.burst && this.lv.t > this.lv.em * .55) { this.lv.burst = 1; this.confetti(this.lv.path[0][0], this.lv.path[0][1] + 10, 70); } const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.t > st + (this.lv.fd || 5.4)) this.buildHero(true); }
     if (this._m !== this.mode) { this._m = this.mode; this.card.classList.toggle('behind', this.mode === 'hero'); }
     this.nShow = lerp(this.nShow, this.fat ? lerp(this.n, 11, ease.inOut(this.fat)) : this.n, 1 - Math.exp(-dt * 6));
     this.wig = Math.max(0, this.wig - dt * .7);
@@ -478,7 +478,7 @@ class Game {
         const u = clamp(this.lv.t / em, 0, 1), o = ease.out(u), [ex, ey] = this.lv.path[0];
         CP.drawButterfly(g, ex, ey + (1 - o) * 14, b.w * 1.1 * (.45 + .55 * o), this.flapX(PI * (1 - o) + Math.sin(u * PI * 2) * .5 * (1 - o)), Math.sin(u * PI * 1.5) * .05 * (1 - u), Math.min(1, u * 4));
       } else {
-        const v = clamp(lt / 5.4, 0, 1), e = ease.inOut(v), [px, py] = this.crPoint(this.lv.path, e), [x, y, tilt] = this.flight(px, py, hv ? Math.min(8, 5 + lt * 8) : 8 * Math.min(1, Math.max(0, lt) / .4));
+        const v = clamp(lt / (this.lv.fd || 5.4), 0, 1), e = ease.inOut(v), [px, py] = this.crPoint(this.lv.path, e), [x, y, tilt] = this.flight(px, py, hv ? Math.min(8, 5 + lt * 8) : 8 * Math.min(1, Math.max(0, lt) / .4));
         CP.drawButterfly(g, x, y, b.w * (em ? 1.1 : 1) * (1 - .4 * e), this.wing ? (hv ? this.flapX(this.wing.p) : lerp(1, this.flapX(this.wing.p), Math.min(1, lt / .2))) : 1, tilt);
       } }
     if (this.mode === 'rest') { const b = this.bf; const p = b.p; CP.drawButterfly(g, b.x, b.y + Math.sin(this.t * 1.6) * 2, b.w, this.flapX(p), b.tilt + Math.sin(this.t * .9) * .02, b.alpha); }
@@ -519,8 +519,8 @@ class Game {
   // the butterfly drifts in from the left, loops past the 1, and leaves top right
   flyBy(emerge) {
     this.layout(); const r = this.restPose(), W = this.W, H = this.H;
-    this.bf = Object.assign({ p: 0, burst: 1, alpha: 1 }, r); this.foods = []; this.particles = []; this.ripples = [];
-    if (emerge) { this.lv = { t: 0, em: 1.3, hv: 1.5, path: [[W * .5, H * .44], [W * .5, H * .44], [W * .3, H * .3], [W * .62, H * .2], [W * .86, H * .32], [W * .7, H * .08], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] }; this.wing = null; this.mode = 'leave'; return; }
+    this.bf = Object.assign({ p: 0, burst: 1, alpha: 1 }, r); this.hatch = null; this.foods = []; this.particles = []; this.ripples = [];
+    if (emerge) { this.lv = { t: 0, em: .9, hv: .7, fd: 3.4, path: [[W * .5, H * .44], [W * .5, H * .44], [W * .3, H * .3], [W * .62, H * .2], [W * .86, H * .32], [W * .7, H * .08], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] }; this.wing = null; this.mode = 'leave'; return; }
     this.lv = { t: -.35, path: [[-W * .14, H * .46], [-W * .14, H * .46], [W * .22, H * .38], [r.x - 30, r.y + 20], [W * .82, H * .3], [W * .48, H * .12], [W * 1.3, -H * .18], [W * 1.3, -H * .18]] };
     this.wing = null; this.mode = 'leave';
   }
