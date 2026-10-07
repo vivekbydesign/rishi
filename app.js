@@ -126,15 +126,32 @@ const banner = (day, what, tex, small) => {
   if (b.classList.contains('hold') && small !== 'hold') { b.classList.add('swapping'); state.banT = setTimeout(() => { set(); b.classList.remove('show', 'hold', 'slow'); b.classList.add('stay'); void b.offsetWidth; b.classList.remove('swapping'); }, 260); return; }
   set(); b.classList.remove('show', 'stay', 'swapping', 'hold'); b.classList.toggle('slow', small === 'slow'); void b.offsetWidth; b.classList.add('show'); if (small === 'hold') b.classList.add('hold');
 };
-const bannerOff = () => { clearTimeout(state.banT); $('banner').classList.remove('show', 'stay', 'swapping', 'hold'); };
+const bannerOff = () => { $('dayBub').getAnimations({ subtree: true }).forEach(a => a.cancel()); clearTimeout(state.banT); $('banner').classList.remove('show', 'stay', 'swapping', 'hold'); };
 const BW = ['One apple', 'Two pears', 'Three plums', 'Four strawberries', 'Five oranges', 'A feast!', 'One green leaf'];
 
 // vibrate on Android; iOS Safari (18+) has no vibrate, but toggling a hidden switch plays a system haptic
 const haptic = (pattern, taps = 1) => { if (navigator.vibrate) { navigator.vibrate(pattern); return; } const l = $('hapt'); if (!l) return; for (let i = 0; i < taps; i++) setTimeout(() => { try { l.click(); } catch (e) {} }, i * 110); };
 
+const cdShow = (txt, tex, go) => { const cd = $('countdown'), num = $('cdNum'); num.textContent = txt; num.style.backgroundImage = `url(assets/tex/${tex}.jpg)`; cd.classList.add('show'); cd.classList.toggle('go', go); num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); };
+const goFlash = () => { const tok = ++state.cdTok; cdShow('Go!', 'blue', true); tone(1318, 0, .7, 'sine', .14); tone(1976, .01, .55, 'sine', .05); if (navigator.vibrate) navigator.vibrate(20); setTimeout(() => tok === state.cdTok && $('countdown').classList.remove('show'), 700); };
+// the day pill grows into a bubble announcing the day, then folds back into the pill
+const dayBubble = (day, what, tex, foods) => {
+  const bub = $('dayBub'), pill = document.querySelector('.daypill'), [dEl, wEl, fEl] = bub.children;
+  bub.getAnimations({ subtree: true }).forEach(a => a.cancel());
+  dEl.textContent = day; dEl.style.backgroundImage = `url(assets/tex/${tex}.jpg)`; wEl.textContent = what; fEl.textContent = '';
+  foods.forEach(k => { const im = document.createElement('img'); im.src = CP.foodURL(k); im.alt = ''; if (foods.length > 5) im.style.height = '20px'; fEl.appendChild(im); });
+  bub.style.width = bub.style.height = ''; bub.classList.add('on');
+  const r = bub.getBoundingClientRect(), p = pill.getBoundingClientRect(), D = 2800;
+  const S = { width: p.width + 'px', height: p.height + 'px', borderRadius: '22px' }, B = { width: r.width + 'px', height: r.height + 'px', borderRadius: '30px' };
+  pill.style.visibility = 'hidden';
+  const A = bub.animate([{ ...S, easing: 'cubic-bezier(.2,1.25,.4,1)' }, { ...B, offset: .2 }, { ...B, offset: .78, easing: 'cubic-bezier(.6,0,.3,1)' }, S], { duration: D, fill: 'forwards' });
+  [...bub.children].forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(8px) scale(.96)' }, { opacity: 0, offset: .08 + i * .03 }, { opacity: 1, transform: 'none', offset: .24 + i * .03 }, { opacity: 1, transform: 'none', offset: .7 }, { opacity: 0, transform: 'translateY(-6px) scale(.97)', offset: .78 }, { opacity: 0 }], { duration: D, fill: 'forwards', easing: 'ease-out' }));
+  const done = () => { bub.classList.remove('on'); pill.style.visibility = ''; };
+  A.onfinish = done; A.oncancel = done;
+};
 let game;
 const hooks = {
-  onDay(i, d) { $('dayName').textContent = d.day; hudFoods(d); banner('On ' + d.day, BW[i], d.tex); chime(); },
+  onDay(i, d) { $('dayName').textContent = d.day; hudFoods(d); dayBubble('On ' + d.day, BW[i], d.tex, d.foods); chime(); },
   onEat(key, left, grp) { if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
@@ -142,16 +159,15 @@ const hooks = {
   onMove() { clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 4000); },
   // first swipe starts a 3-2-1; he sets off on "Go!"
   onCountdown(go) {
-    const cd = $('countdown'), num = $('cdNum'), tok = ++state.cdTok;
-    const steps = [['3', 'red'], ['2', 'orange'], ['1', 'green'], ['Go!', 'blue']];
-    steps.forEach(([txt, tex], i) => setTimeout(() => {
-      if (tok !== state.cdTok || game.mode !== 'play') { cd.classList.remove('show'); return; }
-      num.textContent = txt; num.style.backgroundImage = `url(assets/tex/${tex}.jpg)`; cd.classList.add('show'); cd.classList.toggle('go', i === 3);
-      num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
-      if (i < 3) { tone(880, 0, .14, 'sine', .13); if (navigator.vibrate) navigator.vibrate(8); }
-      else { tone(1318, 0, .7, 'sine', .14); tone(1976, .01, .55, 'sine', .05); if (navigator.vibrate) navigator.vibrate(20); go(); setTimeout(() => tok === state.cdTok && cd.classList.remove('show'), 700); }
+    const tok = ++state.cdTok;
+    [['3', 'red'], ['2', 'orange'], ['1', 'green']].forEach(([txt, tex], i) => setTimeout(() => {
+      if (tok !== state.cdTok || game.mode !== 'play') return;
+      cdShow(txt, tex, false); tone(880, 0, .14, 'sine', .13); if (navigator.vibrate) navigator.vibrate(8);
     }, i * 700));
+    setTimeout(() => { if (tok === state.cdTok && game.mode === 'play') { goFlash(); go(); } }, 2100);
   },
+  // swiped before the count finished: cancel it and go now
+  onGoNow() { if (game.mode === 'play') goFlash(); },
   onSpawn() {},
   onHatchStart() { banner('One night…', 'a little egg lay on a leaf', 'plum', 'hold'); },
   onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) { coach(1, true); game.release(); } }, 900); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },

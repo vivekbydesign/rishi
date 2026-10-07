@@ -400,3 +400,11 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 @keyframes cometTail{0%{transform:scaleX(0)} 45%{transform:scaleX(1)} 80%,100%{transform:scaleX(.15)}}
 @media (prefers-reduced-motion:reduce){.swipe-pill i,.swipe-pill i::before{animation:none}}
 @media (hover:hover) and (pointer:fine){.swipe-pill{display:none}}
+/* day bubble: the pill grows into it and folds back */
+.daybub{position:absolute;left:50%;top:calc(var(--safe-t) + 12px);transform:translateX(-50%);box-sizing:border-box;display:none;flex-direction:column;align-items:center;justify-content:center;padding:14px 28px 16px;background:#fff;border-radius:22px;box-shadow:0 0 0 2px var(--ink) inset,0 12px 28px rgba(60,40,10,.14);overflow:hidden;z-index:2;pointer-events:none}
+.daybub.on{display:flex}
+.daybub > *{opacity:0;white-space:nowrap}
+.db-day{font-family:var(--round);font-weight:700;font-size:40px;line-height:1.05;color:transparent;-webkit-background-clip:text;background-clip:text;background-size:160px}
+.db-what{font-family:var(--hand);font-size:18px;letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+.db-food{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:8px;max-width:280px;white-space:normal}
+.db-food img{height:28px;width:auto}

@@ -51,16 +51,18 @@ class Game {
   // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
   queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
   // after hatching: 3-2-1, then the clock runs and Monday's food appears, but he only sets off on the first swipe (in that direction)
-  release(d) {
+  // a swipe or tap from the player before or during the 3-2-1 skips straight to Go
+  release(d, user) {
     if (!this.held || this.mode !== 'play') return;
     if (d != null) this.startDir = d;
     if (this.started) { this.move(this.startDir); return; }
-    if (this.counting) return;
     const go = () => {
-      this.counting = false; if (this.mode !== 'play' || !this.held) return;
+      this.counting = false; if (this.mode !== 'play' || !this.held || this.started) return;
       this.started = true; this.queue = .35; this.hooks.onRelease && this.hooks.onRelease();
       if (this.startDir != null) this.move(this.startDir);
     };
+    if (user) { this.counting = false; this.hooks.onGoNow && this.hooks.onGoNow(); go(); return; }
+    if (this.counting) return;
     if (this.hooks.onCountdown) { this.counting = true; this.hooks.onCountdown(go); } else go();
   }
   move(sd) {
@@ -76,14 +78,14 @@ class Game {
     const sw = { x: 0, y: 0, moved: false };
     this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; sw.x = this.input.x; sw.y = this.input.y; sw.moved = false; this.hooks.onTouch && this.hooks.onTouch(); });
     this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); const dx = this.input.x - sw.x, dy = this.input.y - sw.y;
-      if (Math.hypot(dx, dy) > 22) { const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2); if (this.held) this.release(d); else this.queueTurn(d); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
-    const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return; if (this.held) { this.release(); return; }
+      if (Math.hypot(dx, dy) > 22) { const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2); if (this.held) this.release(d, true); else this.queueTurn(d); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
+    const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return; if (this.held) { this.release(null, true); return; }
       const h = this.at(this.headS), g = this.lastGoal();
       this.queueTurn(Math.abs(Math.cos(g)) > .5 ? (this.input.y < h[1] ? -PI / 2 : PI / 2) : (this.input.x < h[0] ? PI : 0)); };
     this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', () => { this.input.down = false; });
     this.keys = {};
     const KM = { ArrowUp: -PI / 2, ArrowDown: PI / 2, ArrowLeft: PI, ArrowRight: 0, w: -PI / 2, s: PI / 2, a: PI, d: 0, W: -PI / 2, S: PI / 2, A: PI, D: 0 };
-    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if (this.held) this.release(k); else if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
+    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if (this.held) this.release(k, true); else if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
     addEventListener('blur', () => { this.keys = {}; this.input.down = false; });
   }
 
