@@ -55,6 +55,17 @@ export default async (req) => {
     return json(req, { best, rank: list.findIndex(same) + 1, total: list.length });
   }
 
+  // one record per game played (won, hit the edge, or left), for the host page. Never touches the leaderboard.
+  if (path === '/play' && req.method === 'POST') {
+    const b = await body(req); if (!b) return json(req, { error: 'bad json' }, 400);
+    const id = str(b.id, 24).replace(/[^a-z0-9]/gi, ''), result = ['won', 'lost', 'quit'].includes(b.result) ? b.result : '';
+    if (!id || !result) return json(req, { error: 'invalid' }, 400);
+    const num = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round((+v || 0) * 100) / 100));
+    const at = num(b.at, 0, 1e13), end = num(b.end, 0, 1e13);
+    await db.setJSON('play/' + id, { id, name: str(b.name, 20), pid: str(b.pid, 40), result, eaten: num(b.eaten, 0, 99), total: num(b.total, 0, 99), day: str(b.day, 12), t: num(b.t, 0, 7200), bumps: num(b.bumps, 0, 999), aches: num(b.aches, 0, 999), moved: !!b.moved, dev: str(b.dev, 12), at: at || Date.now(), end: end || Date.now() });
+    return json(req, { ok: true });
+  }
+
   // a guest's phone asks whether its RSVP is still on file (the host may have cleared it)
   if (path === '/rsvp' && req.method === 'GET') {
     const id = str(url.searchParams.get('id'), 16).replace(/[^a-z0-9]/gi, '');
@@ -84,19 +95,33 @@ export default async (req) => {
     const { blobs } = await db.list({ prefix: 'rsvp/' });
     const all = (await Promise.all(blobs.map(b => db.get(b.key, { type: 'json' })))).filter(Boolean).sort((a, b) => b.at - a.at);
     if (path === '/rsvps') return json(req, all);
-    return new Response(hostPage(all), { headers: { 'Content-Type': 'text/html;charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
+    const pl = await db.list({ prefix: 'play/' });
+    const plays = (await Promise.all(pl.blobs.map(b => db.get(b.key, { type: 'json' })))).filter(Boolean).sort((a, b) => b.at - a.at);
+    return new Response(hostPage(all, plays), { headers: { 'Content-Type': 'text/html;charset=utf-8', 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' } });
   }
   return new Response('Not found', { status: 404 });
 };
 
 export const config = { path: '/api/*' };
 
-function hostPage(all) {
+function hostPage(all, plays = []) {
   const yes = all.filter(r => r.go === 'yes'), no = all.filter(r => r.go === 'no');
   const A = yes.reduce((s, r) => s + r.a, 0), K = yes.reduce((s, r) => s + r.k, 0);
   const when = t => new Date(t).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const row = r => `<li class="${r.go}"><div class="nm">${esc(r.name)}</div><div class="rp">${r.go === 'yes' ? `Coming · ${r.a} grown-up${r.a === 1 ? '' : 's'}${r.k ? `, ${r.k} little one${r.k === 1 ? '' : 's'}` : ''}` : 'Can’t make it'}</div>${r.note ? `<div class="nt">“${esc(r.note)}”</div>` : ''}<div class="t">${when(r.at)}</div></li>`;
-  return `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Rishi’s RSVPs</title>
+  const ago = t => { const m = Math.round((Date.now() - t) / 6e4); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' hr ago' : when(t); };
+  const s1 = n => (Math.round(n * 10) / 10).toFixed(1) + 's';
+  const how = p => p.result === 'won' ? `Finished in ${s1(p.t)}` : p.result === 'lost' ? `Hit the edge${p.day ? ' on ' + esc(p.day) : ''}` : !p.moved ? 'Opened, didn’t start' : `Left${p.day ? ' on ' + esc(p.day) : ''}`;
+  const players = new Map();
+  plays.forEach(p => { const k = (p.name || '(no name)').toLowerCase(), o = players.get(k) || { name: p.name || '(no name)', n: 0, won: 0, best: 0, most: 0, last: 0 }; o.n++; if (p.result === 'won') { o.won++; o.best = o.best ? Math.min(o.best, p.t) : p.t; } o.most = Math.max(o.most, p.eaten); o.last = Math.max(o.last, p.at); players.set(k, o); });
+  const plist = [...players.values()].sort((a, b) => b.last - a.last);
+  const won = plays.filter(p => p.result === 'won').length;
+  const prow = o => `<tr><td class="pn">${esc(o.name)}</td><td>${o.n}</td><td>${o.won}</td><td>${o.best ? s1(o.best) : '–'}</td><td>${o.most}</td></tr>`;
+  const grow = p => `<li class="g ${p.result}"><div class="nm">${esc(p.name || '(no name)')}</div><div class="rp">${how(p)}</div><div class="nt2">Ate ${p.eaten} of ${p.total || 22}${p.bumps ? ` · bumped into himself ${p.bumps}×` : ''}${p.aches ? ` · ate ${p.aches} sweet${p.aches === 1 ? '' : 's'} too early` : ''}${p.result !== 'won' && p.moved ? ` · ${s1(p.t)}` : ''} · ${esc(p.dev || '')}</div><div class="t">${ago(p.at)}</div></li>`;
+  const games = `<div class="stats four"><div class="stat"><b>${plays.length}</b><span>games</span></div><div class="stat"><b>${plist.length}</b><span>players</span></div><div class="stat"><b>${won}</b><span>finished</span></div><div class="stat"><b>${plays.length - won}</b><span>didn’t finish</span></div></div>
+${plays.length ? `<h2 class="h2">Players</h2><div class="tw"><table><thead><tr><th>Name</th><th>Games</th><th>Finished</th><th>Best</th><th>Most food</th></tr></thead><tbody>${plist.map(prow).join('')}</tbody></table></div>
+<h2 class="h2">Every game</h2><ul>${plays.map(grow).join('')}</ul>` : '<p class="empty">No games yet</p>'}`;
+  return `<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Rishi’s party · host</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Patrick+Hand&display=swap" rel="stylesheet">
 <style>body{margin:0;padding:24px 16px 40px;font-family:Fredoka,system-ui,sans-serif;color:#1c1b17;background:#fff;max-width:760px;margin-inline:auto}
 h1{font-size:28px;margin:0 0 4px}.sub{font-family:'Patrick Hand',cursive;font-size:20px;letter-spacing:.06em;text-transform:uppercase;color:#6b675c;margin:0 0 20px}
@@ -109,13 +134,23 @@ ul{list-style:none;margin:0;padding:0;border-top:2px solid #1c1b17}li{display:gr
 .menu button{width:100%;text-align:left;font:500 16px Fredoka,system-ui,sans-serif;color:#b0503f;background:none;border:0;border-radius:10px;padding:12px 12px;cursor:pointer}.menu button:hover{background:#faf3ee}.menu button:disabled{color:#b9b4a7;cursor:default;background:none}
 dialog{border:2px solid #1c1b17;border-radius:20px;padding:22px;max-width:320px;font-family:Fredoka,system-ui,sans-serif}dialog::backdrop{background:rgba(28,27,23,.35)}
 dialog h2{margin:0 0 6px;font-size:22px}dialog p{margin:0 0 18px;color:#6b675c;font-size:15px;line-height:1.4}.acts{display:flex;gap:10px;justify-content:flex-end}
+.tabs{display:flex;gap:8px;margin:0 0 20px}.tabs button{font:600 16px Fredoka,system-ui,sans-serif;border:2px solid #1c1b17;background:#fff;color:#1c1b17;border-radius:22px;padding:8px 18px;cursor:pointer}.tabs button[aria-selected=true]{background:#1c1b17;color:#fff}
+.pane[hidden]{display:none}.stats.four{grid-template-columns:repeat(4,1fr)}.stats.four b{font-size:28px}.h2{font-size:20px;margin:8px 0 10px}
+.tw{overflow-x:auto;margin:0 0 26px}table{width:100%;border-collapse:collapse;font-size:15px}th{text-align:left;font-weight:600;color:#6b675c;font-size:13px;padding:8px 6px;border-bottom:2px solid #1c1b17;white-space:nowrap}td{padding:10px 6px;border-bottom:1px solid #ece8de;font-variant-numeric:tabular-nums}td.pn{font-weight:600}
+li.g .rp{color:#6b675c}li.won .rp{color:#1f7a2e}li.lost .rp{color:#b0503f}.nt2{grid-column:1;font-size:14px;color:#8d8a80}
 .acts button{font:600 16px Fredoka,system-ui,sans-serif;border-radius:22px;padding:10px 18px;cursor:pointer;border:2px solid #1c1b17;background:#fff;color:#1c1b17}.acts .del{background:#b0503f;border-color:#b0503f;color:#fff}</style>
-<div class="top"><h1>Rishi’s RSVPs</h1><div class="more"><button class="dots" id="dots" aria-label="More options" aria-haspopup="true" aria-expanded="false">⋯</button><div class="menu" id="menu" role="menu"><button role="menuitem" id="clr"${all.length ? '' : ' disabled'}>Clear all RSVPs</button></div></div></div><p class="sub">Sunday, Nov 22 · 11 AM</p>
+<div class="top"><h1>Rishi’s party</h1><div class="more"><button class="dots" id="dots" aria-label="More options" aria-haspopup="true" aria-expanded="false">⋯</button><div class="menu" id="menu" role="menu"><button role="menuitem" id="clr"${all.length ? '' : ' disabled'}>Clear all RSVPs</button></div></div></div><p class="sub">Sunday, Nov 22 · 11 AM</p>
+<div class="tabs" role="tablist"><button role="tab" aria-selected="true" data-p="rs">RSVPs (${all.length})</button><button role="tab" aria-selected="false" data-p="gm">Games (${plays.length})</button></div>
+<section class="pane" id="gm" hidden>${games}</section>
+<section class="pane" id="rs">
 <div class="stats"><div class="stat"><b>${A}</b><span>grown-ups</span></div><div class="stat"><b>${K}</b><span>little ones</span></div><div class="stat"><b>${no.length}</b><span>can’t make it</span></div></div>
 ${all.length ? `<ul>${all.map(row).join('')}</ul>` : '<p class="empty">No replies yet</p>'}
+</section>
 <dialog id="dlg"><h2>Clear all RSVPs?</h2><p>This deletes all ${all.length} repl${all.length === 1 ? 'y' : 'ies'}. You can’t undo this.</p><div class="acts"><button id="no">Cancel</button><button class="del" id="yes">Delete all</button></div></dialog>
 <script>
 const $=id=>document.getElementById(id), menu=$('menu'), dots=$('dots');
+const tab=p=>{document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.p===p));document.querySelectorAll('.pane').forEach(x=>x.hidden=x.id!==p);history.replaceState(null,'',location.pathname+location.search+(p==='gm'?'#games':''))};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.p)); if(location.hash==='#games') tab('gm');
 dots.onclick=e=>{e.stopPropagation();const o=menu.classList.toggle('open');dots.setAttribute('aria-expanded',o)};
 document.onclick=()=>{menu.classList.remove('open');dots.setAttribute('aria-expanded',false)};
 $('clr').onclick=()=>$('dlg').showModal();

@@ -160,8 +160,8 @@ const dayBubble = (day, what, tex, foods) => {
 };
 let game;
 const hooks = {
-  onDay(i, d) { $('dayName').textContent = d.day; hudFoods(d); dayBubble('On ' + d.day, BW[i], d.tex, d.foods); chime(); },
-  onEat(key, left, grp) { if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
+  onDay(i, d) { if (state.run) { state.run.day = d.day; keepRun(); } $('dayName').textContent = d.day; hudFoods(d); dayBubble('On ' + d.day, BW[i], d.tex, d.foods); chime(); },
+  onEat(key, left, grp) { keepRun(); if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
   onRelease() { clearTimeout(state.coachT); },
@@ -183,24 +183,36 @@ const hooks = {
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
-  onFinish(secs, bumps, aches) { state.lastTime = secs; state.lastBumps = bumps; state.lastAches = aches || 0; banner('Much better!', 'He wasn’t hungry anymore', 'leaf', true); },
+  onFinish(secs, bumps, aches) { endRun('won'); state.lastTime = secs; state.lastBumps = bumps; state.lastAches = aches || 0; banner('Much better!', 'He wasn’t hungry anymore', 'leaf', true); },
   onTransform() { card.classList.remove('playing'); card.classList.add('metamorph'); },
   onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
-  onWall() { haptic([40, 30, 60], 2); wop(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
+  onWall() { endRun('lost'); haptic([40, 30, 60], 2); wop(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
 };
+
+/* every game is logged for the host: who played, how far they got, and how it ended.
+   The open game is kept on the phone, so a closed tab is still sent (as "left") on the next visit. */
+const RUN_KEY = 'rishi1.run';
+const device = () => /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'Computer';
+const sendRun = r => { if (!API || !r) return; try { fetch(API + '/play', { method: 'POST', body: JSON.stringify(r), keepalive: true }).catch(() => {}); } catch (e) {} };
+const runNow = () => { const r = state.run; if (!r || !game) return r; return Object.assign(r, { eaten: game.eaten, total: CP.TOTAL_FOODS, t: Math.round(game.score() * 100) / 100, bumps: game.bumps, aches: game.aches, moved: !!game.started }); };
+const keepRun = () => { const r = runNow(); if (r) try { localStorage.setItem(RUN_KEY, JSON.stringify(r)); } catch (e) {} };
+const endRun = result => { const r = runNow(); if (!r) return; state.run = null; localStorage.removeItem(RUN_KEY); r.result = result; r.end = Date.now(); sendRun(r); };
+const beginRun = () => { endRun('quit'); state.run = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), name: state.name || '', pid: PID, dev: device(), at: Date.now(), day: '' }; keepRun(); };
+try { const old = JSON.parse(localStorage.getItem(RUN_KEY) || 'null'); localStorage.removeItem(RUN_KEY); if (old) { old.result = 'quit'; old.end = old.end || Date.now(); sendRun(old); } } catch (e) {}
+addEventListener('pagehide', () => { if (state.run && game && /play|hatch/.test(game.mode)) endRun('quit'); });
 
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
   show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); bannerOff(); loadChomp(audio()); loadWah(audio()); card.classList.add('playing');
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
-  game.startPlay();
+  game.startPlay(); beginRun();
 }
 const flyLater = () => { clearTimeout(state.flyT); state.flyT = setTimeout(() => { if (game.mode === 'rest') game.flyAway(); }, 1700); };
 function goInvite(skip) {
-  ++state.cdTok; $('countdown').classList.remove('show'); bannerOff();
+  endRun('quit'); ++state.cdTok; $('countdown').classList.remove('show'); bannerOff();
   const fromWelcome = openSheet && openSheet.id === 'introSheet';
   show(null); $('sweetNote').classList.remove('show'); $('goal').classList.remove('show'); if (game.mode === 'rest') flyLater(); card.classList.remove('playing', 'metamorph'); $('coach').classList.remove('show');
   // leaving a run for the invite: the butterfly flutters across the invite, then he crawls back in
