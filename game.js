@@ -50,19 +50,23 @@ class Game {
   lastGoal() { return this.turns.length ? this.turns[this.turns.length - 1] : this.dirGoal; }
   // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
   queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
-  // after hatching he waits on the leaf; the first swipe (or arrow key) starts a 3-2-1, then he sets off that way
+  // after hatching: 3-2-1, then the clock runs and Monday's food appears, but he only sets off on the first swipe (in that direction)
   release(d) {
     if (!this.held || this.mode !== 'play') return;
     if (d != null) this.startDir = d;
+    if (this.started) { this.move(this.startDir); return; }
     if (this.counting) return;
     const go = () => {
       this.counting = false; if (this.mode !== 'play' || !this.held) return;
-      const sd = this.startDir; this.startDir = null;
-      if (sd != null) { const a = Math.abs(angDiff(this.dirGoal, sd)); this.turns = a < .1 ? [] : a > PI - .1 ? [this.at(this.headS)[0] < this.W / 2 ? 0 : PI, sd] : [sd]; }
-      this.held = false; this.queue = .35; if (this.hatch) this.hatch.go = this.t;
-      this.hooks.onRelease && this.hooks.onRelease();
+      this.started = true; this.queue = .35; this.hooks.onRelease && this.hooks.onRelease();
+      if (this.startDir != null) this.move(this.startDir);
     };
     if (this.hooks.onCountdown) { this.counting = true; this.hooks.onCountdown(go); } else go();
+  }
+  move(sd) {
+    this.startDir = null;
+    if (sd != null) { const a = Math.abs(angDiff(this.dirGoal, sd)); this.turns = a < .1 ? [] : a > PI - .1 ? [this.at(this.headS)[0] < this.W / 2 ? 0 : PI, sd] : [sd]; }
+    this.held = false; if (this.hatch) this.hatch.go = this.t; this.hooks.onMove && this.hooks.onMove();
   }
   setTarget() { this.target = { x: clamp(this.input.x, -20, this.W + 20), y: clamp(this.input.y, this.top - 50, this.H), t: this.t }; }
   bottom() { return this.H - 78; }
@@ -173,7 +177,7 @@ class Game {
     const segs = this.inchSegs();
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
-    this.dayI = -1; this.held = false; this.counting = false; this.startDir = null; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
+    this.dayI = -1; this.held = false; this.counting = false; this.startDir = null; this.started = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
     this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
@@ -182,7 +186,7 @@ class Game {
     const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 1 + i * .05, y + 6 * h.sc - i * 1.9 * h.sc]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
     this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 13; this.phase = 0;
-    this.shrink = null; this.mode = 'play'; this.held = !this.auto; this.queue = this.auto ? 1 : 0;
+    this.shrink = null; this.mode = 'play'; this.held = !this.auto; this.started = this.auto; this.queue = this.auto ? 1 : 0;
     h.shell = { x, y: y - 9 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
     for (let i = 0; i < 12; i++) { const a = -PI / 2 + (this.rng() - .5) * 2.4, v = 60 + this.rng() * 120; this.particles.push({ x, y: y - 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.2 + this.rng() * 2, col: '#f4ead2', life: .6 + this.rng() * .4, age: 0, g: 420 }); }
     this.hooks.onHatch && this.hooks.onHatch();
@@ -372,7 +376,7 @@ class Game {
       if (this.queue > 0) { this.queue -= dt; if (this.queue <= 0) this.nextDay(); }
       if (this.spawnAt && t > this.spawnAt) { this.spawnAt = 0; this.spawn(this.pending.shift()); this.hooks.onSpawn && this.hooks.onSpawn(); }
       if (this.held && this.auto) this.held = false;
-      if (this.timing && !this.held) this.elapsed += dt;
+      if (this.timing && this.started) this.elapsed += dt;
       if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / 1.4);
       const aching = this.ache && t - this.ache < 2;
       this.speed = this.held ? 0 : 180 * this.fs * (1 - .22 * this.fat) * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);

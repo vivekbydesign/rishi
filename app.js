@@ -109,7 +109,7 @@ let openSheet = $('introSheet');
 const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); requestAnimationFrame(scatterDots); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
-const COACH = fine ? ['Press an arrow key to start\nArrow keys steer him', 'Arrow keys to move\nAvoid the edges'] : ['Swipe to start\nUp, down, left or right', 'Swipe to move\nAvoid the edges'];
+const COACH = fine ? ['Arrow keys to move\nAvoid the edges', 'Arrow keys to move\nAvoid the edges'] : ['Swipe to move\nAvoid the edges', 'Swipe to move\nAvoid the edges'];
 const coach = (i, on) => { document.querySelector('.coach-t').textContent = COACH[i]; $('coach').classList.toggle('show', on); };
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && (game.mode === 'play' || game.mode === 'over')) goInvite(); return; }
@@ -138,7 +138,8 @@ const hooks = {
   onEat(key, left, grp) { if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
-  onRelease() { clearTimeout(state.coachT); const on = $('coach').classList.contains('show'); document.querySelector('.coach-t').textContent = COACH[1]; if (!on) coach(1, true); clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 3000); },
+  onRelease() { clearTimeout(state.coachT); coach(1, true); },
+  onMove() { clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 4000); },
   // first swipe starts a 3-2-1; he sets off on "Go!"
   onCountdown(go) {
     const cd = $('countdown'), num = $('cdNum'), tok = ++state.cdTok;
@@ -153,7 +154,7 @@ const hooks = {
   },
   onSpawn() {},
   onHatchStart() { banner('One night…', 'a little egg lay on a leaf', 'plum', 'hold'); },
-  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(0, true); }, 1500); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) { coach(1, true); game.release(); } }, 900); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
