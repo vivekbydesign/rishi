@@ -217,10 +217,10 @@ CP.buildEgg = () => {
   const mk = (W, H, fn) => { const [c, g] = canvas(W, H, 3); g.translate(W / 2, H / 2); fn(g); return { img: c, w: W, h: H }; };
   const leaf = mk(230, 130, g => {
     const p = leafPath(-104, 22, 212, 46, -.2);
-    paper(g, p, 'leaf', { k: 3, scale: .5, sb: 3, sy: 2 });
+    paper(g, p, 'leaf', { k: 3, scale: .34, sb: 3, sy: 2 });
     g.save(); g.clip(p);
-    paper(g, leafPath(-60, 30, 150, 22, -.32), 'lgreen', { k: 3, scale: .45, shadow: false, edge: false });
-    g.globalAlpha = .9; paper(g, leafPath(-104, 22, 212, 46, -.2), 'leaf', { k: 3, scale: .5, shadow: false, edge: false, rot: 30 });
+    paper(g, leafPath(-60, 30, 150, 22, -.32), 'lgreen', { k: 3, scale: .34, shadow: false, edge: false });
+    g.globalAlpha = .9; paper(g, leafPath(-104, 22, 212, 46, -.2), 'leaf', { k: 3, scale: .34, shadow: false, edge: false, rot: 30, ox: 40 });
     g.globalAlpha = 1;
     const mid = [[-104, 22], [-40, 9], [30, -6], [107, -21]]; line(g, mid, 2.2, 'rgba(225,240,150,.65)');
     for (let i = 0; i < 9; i++) { const u = -88 + i * 21, y = 22 - (u + 104) * .2; line(g, [[u, y], [u + 18, y - 26]], 1.3, 'rgba(225,240,150,.45)'); line(g, [[u, y], [u + 22, y + 18]], 1.3, 'rgba(225,240,150,.45)'); }

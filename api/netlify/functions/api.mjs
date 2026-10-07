@@ -16,7 +16,7 @@ export default async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req) });
   const getScores = async () => (await db.get('scores', { type: 'json' })) || [];
 
-  if (path === '/scores' && req.method === 'GET') return json(req, (await getScores()).slice(0, 30).map(({ name, t }) => ({ name, t })));
+  if (path === '/scores' && req.method === 'GET') return json(req, (await getScores()).filter(s => !/^test\s*\d*$/i.test(s.name)).slice(0, 30).map(({ name, t }) => ({ name, t })));
 
   // one name per phone: the first phone to use a name keeps it (pid = random id saved on the phone)
   const claim = async (name, pid) => {
@@ -37,6 +37,7 @@ export default async (req) => {
     const b = await body(req); if (!b) return json(req, { error: 'bad json' }, 400);
     const name = str(b.name, 20), t = +b.t;
     if (!name || !(t >= 5 && t <= 3600)) return json(req, { error: 'invalid' }, 400);
+    if (/^test\s*\d*$/i.test(name)) return json(req, { best: false, rank: 0, total: 0, test: true });
     if (!(await claim(name, str(b.pid, 40)))) return json(req, { error: 'taken' }, 409);
     const list = await getScores(), same = s => s.name.toLowerCase() === name.toLowerCase(), i = list.findIndex(same);
     let best = true;

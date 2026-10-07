@@ -70,7 +70,7 @@ $('muteBtn').onclick = () => setMute(!state.muted);
 
 /* scores */
 const fmt = s => s.toFixed(1);
-const readScores = () => { try { return (JSON.parse(localStorage.getItem(SCORE_KEY)) || []).filter(s => typeof s.t === 'number'); } catch (e) { return []; } };
+const readScores = () => { try { return (JSON.parse(localStorage.getItem(SCORE_KEY)) || []).filter(s => typeof s.t === 'number' && !isTest(s.name)); } catch (e) { return []; } };
 const saveScore = (name, t) => {
   const list = readScores(), i = list.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
   let best = true;
@@ -82,10 +82,11 @@ const API = (window.API || '').replace(/\/+$/, '');
 const post = (path, data) => API ? fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(data) }).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null);
 const within = (p, ms) => Promise.race([p, new Promise(r => setTimeout(() => r(null), ms))]);
 // local copy answers instantly; the shared board (when API is set) is the source of truth
-const saveScoreAll = async (name, t) => { const local = saveScore(name, t); const remote = await within(post('/scores', { name, t, pid: PID }), 2500); loadRemote(); return remote && remote.rank ? remote : local; };
+const isTest = n => /^test\s*\d*$/i.test((n || '').trim());
+const saveScoreAll = async (name, t) => { if (isTest(name)) return { test: true }; const local = saveScore(name, t); const remote = await within(post('/scores', { name, t, pid: PID }), 2500); loadRemote(); return remote && remote.rank ? remote : local; };
 // the shared board is fetched early and kept in localStorage so the sheet opens with everyone already there
 const BOARD_KEY = 'rishi1.board';
-const cachedBoard = () => { try { const l = JSON.parse(localStorage.getItem(BOARD_KEY)); return Array.isArray(l) ? l : null; } catch (e) { return null; } };
+const cachedBoard = () => { try { const l = JSON.parse(localStorage.getItem(BOARD_KEY)); return Array.isArray(l) ? l.filter(s => !isTest(s.name)) : null; } catch (e) { return null; } };
 const mergeMine = list => { const mine = readScores(); if (!mine.length) return list; const m = new Map(list.map(s => [s.name.toLowerCase(), s])); mine.forEach(s => { const k = s.name.toLowerCase(), o = m.get(k); if (!o || s.t < o.t) m.set(k, s); }); return [...m.values()].sort((a, b) => a.t - b.t); };
 let remoteP = null;
 const loadRemote = () => { if (!API) return Promise.resolve(null); if (remoteP) return remoteP;
@@ -205,7 +206,7 @@ async function results() {
   const secs = state.lastTime, r = await saveScoreAll(state.name || 'Guest', secs);
   const t = $('toast'); t.textContent = '';
   const big = document.createElement('b'); big.textContent = fmt(secs) + 's';
-  const msg = document.createElement('span'); msg.textContent = (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`);
+  const msg = document.createElement('span'); msg.textContent = r.test ? 'Test run, not saved' : (r.best ? (r.rank === 1 ? 'Fastest of all!' : `#${r.rank} of ${r.total}`) : `Your best is still #${r.rank}`);
   t.append(big, msg); t.classList.add('show'); clearTimeout(state.toastT); state.toastT = setTimeout(() => t.classList.remove('show'), 5200);
   paintPlay();
   flyLater();
@@ -259,7 +260,7 @@ $('playBtn').onclick = () => state.name ? startGame() : show('introSheet');
 $('scoresBtn').onclick = () => { renderBoard(); show('scoreSheet'); };
 $('skipBtn').onclick = () => goInvite(true);
 // asks the party server whether this name belongs to another phone; offline or slow = let them in
-const nameFree = async v => { const r = await within(post('/name', { name: v, pid: PID }), 2500); return !r || r.ok !== false; };
+const nameFree = async v => { if (isTest(v)) return true; const r = await within(post('/name', { name: v, pid: PID }), 2500); return !r || r.ok !== false; };
 const TAKEN = v => `Someone else has that name. Try adding an initial, like “${v.split(' ')[0]} K”.`;
 $('nameForm').onsubmit = async e => { e.preventDefault(); const v = cleanName($('nameInput').value);
   if (!v) { $('nameErr').textContent = 'Type a name so we can put you on the scoreboard.'; $('nameInput').classList.add('bad'); $('nameInput').focus(); return; }
@@ -268,7 +269,7 @@ $('nameForm').onsubmit = async e => { e.preventDefault(); const v = cleanName($(
   if (!free) { $('nameErr').textContent = TAKEN(v); $('nameInput').classList.add('bad'); $('nameInput').focus(); return; }
   state.name = v; localStorage.setItem(NAME_KEY, v); $('nameErr').textContent = ''; $('nameInput').classList.remove('bad'); $('nameInput').blur(); startGame(); };
 $('nameInput').oninput = () => { $('nameInput').classList.remove('bad'); $('nameErr').textContent = ''; };
-$('resNameForm').onsubmit = async e => { e.preventDefault(); const v = cleanName($('resName').value); if (!v) { $('resName').focus(); return; } if (!(await nameFree(v))) { $('resRank').textContent = TAKEN(v); $('resName').focus(); return; } state.name = v; localStorage.setItem(NAME_KEY, v); const r = await saveScoreAll(v, state.lastTime); $('resNameForm').classList.add('hidden'); $('resRank').textContent = `Saved! You're #${r.rank} of ${r.total}.`; };
+$('resNameForm').onsubmit = async e => { e.preventDefault(); const v = cleanName($('resName').value); if (!v) { $('resName').focus(); return; } if (!(await nameFree(v))) { $('resRank').textContent = TAKEN(v); $('resName').focus(); return; } state.name = v; localStorage.setItem(NAME_KEY, v); const r = await saveScoreAll(v, state.lastTime); $('resNameForm').classList.add('hidden'); $('resRank').textContent = r.test ? 'Test run, not saved.' : `Saved! You're #${r.rank} of ${r.total}.`; };
 $('resInvite').onclick = () => { show(null); flyLater(); };
 $('resAgain').onclick = () => { game.buildHero(false); startGame(); };
 $('resScores').onclick = () => { renderBoard(); show('scoreSheet'); };

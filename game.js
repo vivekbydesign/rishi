@@ -172,7 +172,7 @@ class Game {
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
     this.dayI = -1; this.held = false; this.counting = false; this.startDir = null; this.started = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
-    this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
+    this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.pauseAt = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
   pop() {
@@ -306,7 +306,7 @@ class Game {
     const left = onBoard + (this.pending ? this.pending.reduce((a, g) => a + g.length, 0) : 0);
     this.hooks.onEat && this.hooks.onEat(f.key, left, f.grp);
     if (left === 0) {
-      if (this.dayI === 5) { this.queue = 2.2; this.fatOn = this.t + 1.9; this.hooks.onAche && this.hooks.onAche(); }
+      if (this.dayI === 5) { this.queue = 2.2; this.ache = 0; this.pauseAt = this.t; this.fatOn = this.t + .3; this.hooks.onAche && this.hooks.onAche(); }
       else if (this.dayI === 6) { this.foods = this.foods.filter(o => !o.decoy); this.timing = false; this.hooks.onFinish && this.hooks.onFinish(this.score(), this.bumps, this.aches); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
       else this.queue = .75;
     }
@@ -370,10 +370,11 @@ class Game {
       if (this.queue > 0) { this.queue -= dt; if (this.queue <= 0) this.nextDay(); }
       if (this.spawnAt && t > this.spawnAt) { this.spawnAt = 0; this.spawn(this.pending.shift()); this.hooks.onSpawn && this.hooks.onSpawn(); }
       if (this.held && this.auto) this.held = false;
-      if (this.timing && this.started) this.elapsed += dt;
-      if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / 1.4);
+      const pz = this.pauseAt ? t - this.pauseAt : 9, paused = pz < 1.15;
+      if (this.timing && this.started && !paused) this.elapsed += dt;
+      if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / .8);
       const aching = this.ache && t - this.ache < 2;
-      this.speed = this.held ? 0 : 180 * this.fs * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
+      this.speed = this.held || paused ? 0 : 180 * this.fs * (aching ? .35 : 1) * (pz < 1.5 ? ease.inOut((pz - 1.15) / .35) : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
       this.steer(dt);
       const h = this.at(this.headS); this.push(h[0] + Math.cos(this.dir) * this.speed * dt, h[1] + Math.sin(this.dir) * this.speed * dt); this.headS = this.cum[this.cum.length - 1];
       this.phase += this.speed * dt / (this.R * 2.4) * TAU;
