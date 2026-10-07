@@ -372,3 +372,31 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .coach{justify-content:center}
 .b-what{text-align:center;max-width:calc(100% - 32px);text-wrap:balance}
 .coach{gap:0}
+.coach-t{white-space:pre-line;text-align:center;line-height:1.25}
+.coach::after{content:"";width:44px;flex:none}
+@media (hover:hover) and (pointer:fine){.coach::after{display:none}}
+/* held banner: fade in and stay; hand over to the next words in place */
+.banner.show.hold{animation:bannerIn .7s var(--ease-out) both}
+@keyframes bannerIn{0%{opacity:0;transform:translateY(18px) scale(.94);filter:blur(6px)}100%{opacity:1;transform:none;filter:blur(0)}}
+.banner > *{transition:opacity .26s var(--ease-out),filter .26s var(--ease-out),transform .26s var(--ease-out)}
+.banner.swapping > *{opacity:0;filter:blur(5px);transform:translateY(-8px) scale(.97)}
+.banner.stay{opacity:1;animation:bannerStay 3s linear both}
+@keyframes bannerStay{0%,78%{opacity:1;transform:none;filter:blur(0)}100%{opacity:0;transform:translateY(-14px) scale(1.02);filter:blur(4px)}}
+/* yes / no share one slot so the sheet keeps its height when you switch */
+#rsvpSheet .rs-swap{display:grid;margin-bottom:18px}
+#rsvpSheet .rs-swap > *{grid-area:1/1;margin:0}
+#rsvpSheet .rs-swap > .count{display:flex}
+#rsvpSheet .rs-swap > .no-only{display:block}
+#rsvpSheet.no .rs-swap > .yes-only,#rsvpSheet:not(.no) .rs-swap > .no-only{visibility:hidden}
+@media (max-width:380px){#rsvpSheet .rs-sub{min-height:2lh}}
+/* swipe hint: a green comet in a little pill, going up, then left, then right */
+.swipe-pill{position:relative;flex:none;width:44px;height:44px;border-radius:14px;background:#f7f2e7;box-shadow:inset 0 0 0 2px var(--ink);overflow:hidden;margin-right:10px}
+.swipe-pill i{position:absolute;left:50%;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:url(assets/tex/green.jpg) center/60px;box-shadow:0 0 0 1px rgba(0,0,0,.08);animation:comet 3.6s cubic-bezier(.45,0,.2,1) infinite}
+.swipe-pill i::before{content:"";position:absolute;right:50%;top:50%;height:7px;width:26px;margin-top:-3.5px;border-radius:4px;background:linear-gradient(90deg,rgba(46,125,50,0),rgba(46,125,50,.55));transform-origin:100% 50%;animation:cometTail 1.2s cubic-bezier(.45,0,.2,1) infinite}
+@keyframes comet{
+  0%{transform:translate(0,13px) rotate(-90deg);opacity:0} 4%{opacity:1} 26%{transform:translate(0,-13px) rotate(-90deg);opacity:1} 31%{transform:translate(0,-13px) rotate(-90deg);opacity:0}
+  33.4%{transform:translate(13px,0) rotate(180deg);opacity:0} 37%{opacity:1} 59%{transform:translate(-13px,0) rotate(180deg);opacity:1} 64%{transform:translate(-13px,0) rotate(180deg);opacity:0}
+  66.7%{transform:translate(-13px,0) rotate(0deg);opacity:0} 70%{opacity:1} 92%{transform:translate(13px,0) rotate(0deg);opacity:1} 97%,100%{transform:translate(13px,0) rotate(0deg);opacity:0}}
+@keyframes cometTail{0%{transform:scaleX(0)} 45%{transform:scaleX(1)} 80%,100%{transform:scaleX(.15)}}
+@media (prefers-reduced-motion:reduce){.swipe-pill i,.swipe-pill i::before{animation:none}}
+@media (hover:hover) and (pointer:fine){.swipe-pill{display:none}}

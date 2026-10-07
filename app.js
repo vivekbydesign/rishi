@@ -109,7 +109,7 @@ let openSheet = $('introSheet');
 const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); requestAnimationFrame(scatterDots); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
-const COACH = fine ? ['Press an arrow key to start · arrows to move', 'Arrow keys to move · avoid the edges'] : ['Tap to start · swipe to move', 'Swipe to move · avoid the edges'];
+const COACH = fine ? ['Press an arrow key to start\nArrow keys steer him', 'Arrow keys to move\nAvoid the edges'] : ['Swipe to start\nUp, down, left or right', 'Swipe to move\nAvoid the edges'];
 const coach = (i, on) => { document.querySelector('.coach-t').textContent = COACH[i]; $('coach').classList.toggle('show', on); };
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && (game.mode === 'play' || game.mode === 'over')) goInvite(); return; }
@@ -119,7 +119,14 @@ addEventListener('keydown', e => {
 
 /* HUD */
 const hudFoods = d => { const box = $('dayFood'); box.textContent = ''; const uniq = d.foods.length > 5 ? d.foods : d.foods; uniq.forEach(k => { const im = document.createElement('img'); im.src = CP.foodURL(k); im.alt = ''; im.dataset.k = k; if (d.foods.length > 5) im.style.height = '16px'; box.appendChild(im); }); };
-const banner = (day, what, tex, small) => { const b = $('banner'); $('bDay').textContent = day; $('bDay').style.backgroundImage = `url(assets/tex/${tex}.jpg)`; $('bWhat').textContent = what; b.classList.toggle('small', !!small); b.classList.toggle('slow', small === 'slow'); b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); };
+const banner = (day, what, tex, small) => {
+  const b = $('banner'), set = () => { $('bDay').textContent = day; $('bDay').style.backgroundImage = `url(assets/tex/${tex}.jpg)`; $('bWhat').textContent = what; b.classList.toggle('small', !!small); };
+  clearTimeout(state.banT);
+  // a held message hands over to the next one in place: words blur out and back in, the banner never vanishes
+  if (b.classList.contains('hold') && small !== 'hold') { b.classList.add('swapping'); state.banT = setTimeout(() => { set(); b.classList.remove('show', 'hold', 'slow'); b.classList.add('stay'); void b.offsetWidth; b.classList.remove('swapping'); }, 260); return; }
+  set(); b.classList.remove('show', 'stay', 'swapping', 'hold'); b.classList.toggle('slow', small === 'slow'); void b.offsetWidth; b.classList.add('show'); if (small === 'hold') b.classList.add('hold');
+};
+const bannerOff = () => { clearTimeout(state.banT); $('banner').classList.remove('show', 'stay', 'swapping', 'hold'); };
 const BW = ['One apple', 'Two pears', 'Three plums', 'Four strawberries', 'Five oranges', 'A feast!', 'One green leaf'];
 
 // vibrate on Android; iOS Safari (18+) has no vibrate, but toggling a hidden switch plays a system haptic
@@ -131,7 +138,8 @@ const hooks = {
   onEat(key, left, grp) { if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
-  onRelease() { clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 4000); },
+  onRelease() { clearTimeout(state.coachT); const on = $('coach').classList.contains('show'); document.querySelector('.coach-t').textContent = COACH[1]; if (!on) coach(1, true); clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 3000); },
+  // first swipe starts a 3-2-1; he sets off on "Go!"
   onCountdown(go) {
     const cd = $('countdown'), num = $('cdNum'), tok = ++state.cdTok;
     const steps = [['3', 'red'], ['2', 'orange'], ['1', 'green'], ['Go!', 'blue']];
@@ -144,8 +152,8 @@ const hooks = {
     }, i * 700));
   },
   onSpawn() {},
-  onHatchStart() { banner('One night…', 'a little egg lay on a leaf', 'plum', true); },
-  onHatch() { if (navigator.vibrate) navigator.vibrate(18); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) { coach(1, true); game.release(); } }, 1300); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
+  onHatchStart() { banner('One night…', 'a little egg lay on a leaf', 'plum', 'hold'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(0, true); }, 1500); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
@@ -160,13 +168,13 @@ const hooks = {
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
-  show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); loadChomp(audio()); loadWah(audio()); card.classList.add('playing');
+  show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); bannerOff(); loadChomp(audio()); loadWah(audio()); card.classList.add('playing');
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
   game.startPlay();
 }
 const flyLater = () => { clearTimeout(state.flyT); state.flyT = setTimeout(() => { if (game.mode === 'rest') game.flyAway(); }, 1700); };
 function goInvite(skip) {
-  ++state.cdTok; $('countdown').classList.remove('show');
+  ++state.cdTok; $('countdown').classList.remove('show'); bannerOff();
   const fromWelcome = skip && openSheet && openSheet.id === 'introSheet';
   show(null); $('sweetNote').classList.remove('show'); $('goal').classList.remove('show'); if (game.mode === 'rest') flyLater(); card.classList.remove('playing', 'metamorph'); $('coach').classList.remove('show');
   // leaving a run for the invite: the butterfly flutters across the invite, then he crawls back in
@@ -268,25 +276,21 @@ const DOT_TEX = ['violet', 'blue', 'red', 'green', 'orange', 'yellow', 'teal'];
 function scatterDots() {
   const box = $('dots'), sh = $('introSheet'); box.textContent = '';
   const R = sh.getBoundingClientRect(); if (!R.width) return;
-  // dots ring the card evenly: walk its outline and drop one every so often, some tucked under the edge
+  // dots ring the card evenly in a fixed layout (seeded, same every visit); side dots sit off the card and bleed off the screen edge
   const c = sh.querySelector('.intro-card').getBoundingClientRect(), L = c.left - R.left, T = c.top - R.top, Rt = c.right - R.left, B = c.bottom - R.top, W = R.width, H = R.height;
-  const per = 2 * (c.width + c.height), N = 17, pts = []; let ci = Math.floor(Math.random() * DOT_TEX.length);
-  const clear = (x, y, r) => x - r > 4 && x + r < W - 4 && y - r > 4 && y + r < H - 4 && !pts.some(p => Math.hypot(p.x - x, p.y - y) < p.r + r + 34);
+  let seed = 22; const rnd = () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t ^= t + Math.imul(t ^ t >>> 7, 61 | t); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const SIZES = [5, 19, 9, 26, 7, 14, 4, 22, 11, 6, 17, 8, 24, 5, 13, 20, 9], N = SIZES.length, per = 2 * (c.width + c.height), pts = []; let ci = 0;
   for (let i = 0; i < N; i++) {
-    for (let k = 0; k < 40; k++) {
-      const d = ((i + .2 + Math.random() * .6) / N) * per; let x, y, nx, ny, room;
-      if (d < c.width) { x = L + d; y = T; nx = 0; ny = -1; room = T; }
-      else if (d < c.width + c.height) { x = Rt; y = T + d - c.width; nx = 1; ny = 0; room = W - Rt; }
-      else if (d < 2 * c.width + c.height) { x = Rt - (d - c.width - c.height); y = B; nx = 0; ny = 1; room = H - B; }
-      else { x = L; y = B - (d - 2 * c.width - c.height); nx = -1; ny = 0; room = L; }
-      const r = Math.min(6 + Math.pow(Math.random(), 1.4) * 15, Math.max(6, room * .8)), off = -r * .45 + Math.random() * Math.max(0, room - r * .8);
-      const px = x + nx * (off + r * .55), py = y + ny * (off + r * .55);
-      if (clear(px, py, r)) { pts.push({ x: px, y: py, r }); break; }
-    }
+    const r = SIZES[i], d = ((i + .5 + (rnd() - .5) * .3) / N) * per; let x, y;
+    if (d < c.width) { x = L + d; y = T - Math.max(r + 8 + rnd() * Math.max(0, T - 2 * r - 20), r * .4); y = Math.max(y, r + 6); }
+    else if (d < c.width + c.height) { y = T + d - c.width; x = Rt + 7 + r; }
+    else if (d < 2 * c.width + c.height) { x = Rt - (d - c.width - c.height); y = B + Math.max(r + 8 + rnd() * Math.max(0, H - B - 2 * r - 20), r * .4); y = Math.min(y, H - r - 6); }
+    else { y = B - (d - 2 * c.width - c.height); x = L - 7 - r; }
+    x = Math.min(Math.max(x, L - 7 - r), Rt + 7 + r); pts.push({ x, y, r });
   }
   pts.sort((a, b) => a.y - b.y).forEach((p, i) => {
     const d = document.createElement('span'); d.className = 'dot';
-    Object.assign(d.style, { left: p.x - p.r + 'px', top: p.y - p.r + 'px', width: p.r * 2 + 'px', height: p.r * 2 + 'px', backgroundImage: `url(assets/tex/${DOT_TEX[ci++ % DOT_TEX.length]}.jpg)`, animationDelay: `${.15 + i * .035}s, ${Math.random() * -6}s` });
+    Object.assign(d.style, { left: p.x - p.r + 'px', top: p.y - p.r + 'px', width: p.r * 2 + 'px', height: p.r * 2 + 'px', backgroundImage: `url(assets/tex/${DOT_TEX[ci++ % DOT_TEX.length]}.jpg)`, animationDelay: `${.15 + i * .035}s, ${-(i * 1.37 % 6)}s` });
     box.append(d);
   });
 }

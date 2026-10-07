@@ -50,11 +50,18 @@ class Game {
   lastGoal() { return this.turns.length ? this.turns[this.turns.length - 1] : this.dirGoal; }
   // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
   queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
-  // after hatching he waits; the first touch (or key) sets him off and starts the clock
-  // first tap starts a short 3-2-1 countdown; the caterpillar moves on "Go!"
-  release() {
-    if (!this.held || this.counting) return;
-    const go = () => { this.counting = false; if (this.mode !== 'play' || !this.held) return; this.held = false; this.hooks.onRelease && this.hooks.onRelease(); };
+  // after hatching he waits on the leaf; the first swipe (or arrow key) starts a 3-2-1, then he sets off that way
+  release(d) {
+    if (!this.held || this.mode !== 'play') return;
+    if (d != null) this.startDir = d;
+    if (this.counting) return;
+    const go = () => {
+      this.counting = false; if (this.mode !== 'play' || !this.held) return;
+      const sd = this.startDir; this.startDir = null;
+      if (sd != null) { const a = Math.abs(angDiff(this.dirGoal, sd)); this.turns = a < .1 ? [] : a > PI - .1 ? [this.at(this.headS)[0] < this.W / 2 ? 0 : PI, sd] : [sd]; }
+      this.held = false; this.queue = .35; if (this.hatch) this.hatch.go = this.t;
+      this.hooks.onRelease && this.hooks.onRelease();
+    };
     if (this.hooks.onCountdown) { this.counting = true; this.hooks.onCountdown(go); } else go();
   }
   setTarget() { this.target = { x: clamp(this.input.x, -20, this.W + 20), y: clamp(this.input.y, this.top - 50, this.H), t: this.t }; }
@@ -63,16 +70,16 @@ class Game {
     const pos = e => { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
     // snake controls: swipe in a direction, or tap to one side of his head; arrow keys on a keyboard
     const sw = { x: 0, y: 0, moved: false };
-    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; this.release(); sw.x = this.input.x; sw.y = this.input.y; sw.moved = false; this.hooks.onTouch && this.hooks.onTouch(); });
+    this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; sw.x = this.input.x; sw.y = this.input.y; sw.moved = false; this.hooks.onTouch && this.hooks.onTouch(); });
     this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); const dx = this.input.x - sw.x, dy = this.input.y - sw.y;
-      if (Math.hypot(dx, dy) > 22) { this.queueTurn(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2)); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
-    const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return;
+      if (Math.hypot(dx, dy) > 22) { const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2); if (this.held) this.release(d); else this.queueTurn(d); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
+    const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return; if (this.held) { this.release(); return; }
       const h = this.at(this.headS), g = this.lastGoal();
       this.queueTurn(Math.abs(Math.cos(g)) > .5 ? (this.input.y < h[1] ? -PI / 2 : PI / 2) : (this.input.x < h[0] ? PI : 0)); };
     this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', () => { this.input.down = false; });
     this.keys = {};
     const KM = { ArrowUp: -PI / 2, ArrowDown: PI / 2, ArrowLeft: PI, ArrowRight: 0, w: -PI / 2, s: PI / 2, a: PI, d: 0, W: -PI / 2, S: PI / 2, A: PI, D: 0 };
-    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; this.release(); if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
+    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if (this.held) this.release(k); else if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
     addEventListener('blur', () => { this.keys = {}; this.input.down = false; });
   }
 
@@ -100,7 +107,7 @@ class Game {
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
     const tail0 = entrance ? -L - 40 : headX - L, dist = headX - L - tail0, cycles = entrance ? Math.max(3, Math.round(dist / (L * .5))) : 0;
     const D = cycles ? dist / cycles : 0, S = D || L * .5;
-    this.inch = { t: entrance ? 0 : 99, L, base, headX, tail0, cycles, D, S, cyc: .95, gRest: (1 - restRatio) * A / S, neckRest: CP.neckRest ?? 1.25 };
+    this.inch = { t: entrance ? 0 : 99, L, base, headX, tail0, cycles, D, S, cyc: .7, gRest: (1 - restRatio) * A / S, neckRest: CP.neckRest ?? 1.25 };
     this.hero = { t: 0 }; this.mode = 'hero'; this.bf = null; this.foods = []; this.speed = 0; this.wig = 0; this.fat = 0; this.fatOn = 0;
   }
   // one inch cycle, read from the film: head plants, tail pulls up into a tall slinky loop, short hold, head reaches and the loop rolls out flat
@@ -113,7 +120,7 @@ class Game {
       const e = ease.inOut((c - .5) / .5), w = Math.sin(PI * e);
       return { g: 1 - e, anchor: 'tail', ax: H0 - I.L + I.D, lean: .34 * (1 - e) - .5 * w, neck: .22 * w, tilt: .14 * (1 - e) - .22 * w };
     }
-    const s = ease.inOut(clamp((I.t - T) / 1.1, 0, 1)), br = Math.sin(this.t * 1.3) * .03 * s;
+    const s = ease.inOut(clamp((I.t - T) / .9, 0, 1)), br = Math.sin(this.t * 1.3) * .03 * s;
     return { g: I.gRest * (s + br), anchor: 'head', ax: I.headX, lean: 0, neck: I.neckRest * s, nb: (CP.nb ?? 1.4) * s, tilt: (CP.rTilt ?? .1) * s };
   }
   inchSegs() {
@@ -166,16 +173,16 @@ class Game {
     const segs = this.inchSegs();
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
-    this.dayI = -1; this.held = false; this.counting = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
+    this.dayI = -1; this.held = false; this.counting = false; this.startDir = null; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
     this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
   pop() {
     const h = this.hatch, x = h.x, y = h.y; h.popped = this.t;
-    const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 2 + i * .1, y + 30 - i * 1.9 * this.hatch.sc]);
+    const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 1 + i * .05, y + 6 * h.sc - i * 1.9 * h.sc]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
     this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 13; this.phase = 0;
-    this.shrink = null; this.mode = 'play'; this.queue = 3.2; this.held = !this.auto;
+    this.shrink = null; this.mode = 'play'; this.held = !this.auto; this.queue = this.auto ? 1 : 0;
     h.shell = { x, y: y - 9 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
     for (let i = 0; i < 12; i++) { const a = -PI / 2 + (this.rng() - .5) * 2.4, v = 60 + this.rng() * 120; this.particles.push({ x, y: y - 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.2 + this.rng() * 2, col: '#f4ead2', life: .6 + this.rng() * .4, age: 0, g: 420 }); }
     this.hooks.onHatch && this.hooks.onHatch();
@@ -185,11 +192,11 @@ class Game {
     const img = (o, x, y, ox, oy, rot = 0, s = 1, alpha = 1) => { g.save(); g.globalAlpha = alpha; g.translate(x, y); g.rotate(rot); g.scale(s * sc, s * sc); g.drawImage(o.img, ox, oy, o.w, o.h); g.restore(); };
     if (!front) {
       if (t < .55) this.drawCaterpillar(g, h.segs, 1 - ease.out(t / .55), h.head);
-      const k = ease.out(clamp((t - .2) / .8, 0, 1)), fade = h.popped ? 1 - ease.inOut(clamp((age - 2.4) / .9, 0, 1)) : 1;
+      const k = ease.out(clamp((t - .2) / .8, 0, 1)), fade = h.go ? 1 - ease.inOut(clamp((this.t - h.go - .5) / .9, 0, 1)) : 1;
       if (k * fade > 0) img(E.leaf, h.x - 6 * sc, h.y + 22 * sc, -E.leaf.w / 2, -E.leaf.h / 2, (1 - k) * .08, .92 + .08 * k, k * fade);
       if (!h.popped) {
         const d = clamp((t - .75) / .55, 0, 1), drop = (1 - ease.back(d)) * -26 * sc;
-        const shiver = [[1.45, 1.75, .1], [2.0, 2.3, .16], [2.45, 2.62, .22]].reduce((m, [s0, s1, A]) => m + (t > s0 && t < s1 ? Math.sin((t - s0) * 34) * A * Math.sin(PI * (t - s0) / (s1 - s0)) : 0), 0);
+        const shiver = [[2.4, 2.75, .1], [3.2, 3.55, .16], [4.0, 4.35, .22], [4.6, 4.8, .3]].reduce((m, [s0, s1, A]) => m + (t > s0 && t < s1 ? Math.sin((t - s0) * 34) * A * Math.sin(PI * (t - s0) / (s1 - s0)) : 0), 0);
         const breath = 1 + Math.sin(t * 5) * .015 * clamp(t - 1.3, 0, 1);
         if (d > 0) img(E.whole, h.x, h.y + 14 * sc + drop, -17, -34, shiver, breath * 1.6, clamp(d * 4, 0, 1));
       }
@@ -267,7 +274,7 @@ class Game {
     }
     if (ok.length) best = ok[Math.floor(r() * ok.length)];
     else if (!best || bestS < 90) return;
-    this.foods.push({ key, x: best[0], y: best[1], w, h, born: this.t + .35 + r() * .3, rot: (r() - .5) * .5, ph: r() * TAU, eaten: -1, bites: 1, biteAt: 0, holes: [], sc, decoy: true });
+    this.foods.push({ key, x: best[0], y: best[1], w, h, born: this.t, rot: (r() - .5) * .5, ph: r() * TAU, eaten: -1, bites: 1, biteAt: 0, holes: [], sc, decoy: true });
   }
   // the big leaf goes in bites; each one leaves a scalloped hole
   bite(f, h) {
@@ -352,8 +359,9 @@ class Game {
     if (this.hatch) {
       const h = this.hatch; h.t += dt;
       if (h.shell && h.popped) { const sh = h.shell; sh.vy += 700 * dt; sh.x += sh.vx * dt; sh.y += sh.vy * dt; sh.a += sh.va * dt; }
-      if (this.mode === 'hatch') { if (!h.said && h.t > .6) { h.said = 1; this.hooks.onHatchStart && this.hooks.onHatchStart(); } if (h.t > 2.7) this.pop(); }
-      else if (this.mode !== 'play' || t - h.popped > 4) this.hatch = null;
+      if (this.mode === 'hatch') { if (!h.said && h.t > .6) { h.said = 1; this.hooks.onHatchStart && this.hooks.onHatchStart(); }
+        if (h.t > (this.auto ? 2.7 : 4.8)) this.pop(); }
+      else if (this.mode !== 'play' || (h.go && t - h.go > 2)) this.hatch = null;
     }
     if (this.mode === 'hero') {
       // wait off-screen while a sheet covers the invite; crawl in once it closes

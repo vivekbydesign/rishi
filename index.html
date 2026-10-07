@@ -80,7 +80,8 @@
     <div class="banner" id="banner" aria-live="polite"><span class="b-day" id="bDay"></span><span class="b-what" id="bWhat"></span></div>
     <p class="goal" id="goal"><span>Eat all the food to get</span> <b>Rishi’s invite</b></p>
     <div class="countdown" id="countdown" aria-live="assertive"><span class="cd-num" id="cdNum"></span></div>
-    <div class="coach" id="coach"><span class="finger" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15V4a2 2 0 0 1 4 0v5.5" fill="#fff"/><path d="M11 9.5V9a2 2 0 0 1 4 0v1M15 10a2 2 0 0 1 4 0v1"/></svg></span><span class="coach-t">Swipe to turn · avoid the edges</span></div>
+    <div class="coach" id="coach"><span class="swipe-pill" aria-hidden="true"><i></i></span><span class="coach-t">Swipe to move
+Avoid the edges</span></div>
 
     <p class="sweet-note" id="sweetNote" role="status">Oops! Sweets are only for weekends</p>
     <div class="toast" id="toast" role="status"></div>
@@ -114,11 +115,13 @@
         <label for="rsvpName">Your name</label>
         <input id="rsvpName" maxlength="40" placeholder="e.g. The Sharma family" autocomplete="name">
         <p class="err" id="rsvpErr" role="alert"></p>
+        <div class="rs-swap">
         <div class="count yes-only">
           <div class="step"><span class="st-l">Grown-ups</span><button type="button" class="st-b" data-k="a" data-d="-1" aria-label="Fewer grown-ups">−</button><output id="cA">1</output><button type="button" class="st-b" data-k="a" data-d="1" aria-label="More grown-ups">+</button></div>
           <div class="step"><span class="st-l">Little ones</span><button type="button" class="st-b" data-k="k" data-d="-1" aria-label="Fewer little ones">−</button><output id="cK">0</output><button type="button" class="st-b" data-k="k" data-d="1" aria-label="More little ones">+</button></div>
         </div>
         <div class="no-only"><label for="rsvpNote">A note for Rishi <span class="hint">optional</span></label><input id="rsvpNote" maxlength="140" placeholder="Happy first birthday!"></div>
+        </div>
         <button class="btn primary wide" type="submit" id="rsvpSend">Send RSVP</button>
       </form>
     </section>
