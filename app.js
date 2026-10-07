@@ -145,7 +145,7 @@ const dayBubble = (day, what, tex, foods) => {
   const S = { width: p.width + 'px', height: p.height + 'px', borderRadius: '22px' }, B = { width: r.width + 'px', height: r.height + 'px', borderRadius: '30px' };
   pill.style.visibility = 'hidden';
   const A = bub.animate([{ ...S, easing: 'cubic-bezier(.2,1.25,.4,1)' }, { ...B, offset: .2 }, { ...B, offset: .78, easing: 'cubic-bezier(.6,0,.3,1)' }, S], { duration: D, fill: 'forwards' });
-  [...bub.children].forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(8px) scale(.96)' }, { opacity: 0, offset: .08 + i * .03 }, { opacity: 1, transform: 'none', offset: .24 + i * .03 }, { opacity: 1, transform: 'none', offset: .7 }, { opacity: 0, transform: 'translateY(-6px) scale(.97)', offset: .78 }, { opacity: 0 }], { duration: D, fill: 'forwards', easing: 'ease-out' }));
+  [...bub.children].forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(8px) scale(.96)' }, { opacity: 0, offset: .08 + i * .03 }, { opacity: 1, transform: 'none', offset: .24 + i * .03 }, { opacity: 1, transform: 'none', offset: .7 }, { opacity: 0, transform: 'translateY(-6px) scale(.97)', offset: .78 }, { opacity: 0 }].map(k => ({ easing: 'ease-out', ...k })), { duration: D, fill: 'forwards' }));
   const done = () => { bub.classList.remove('on'); pill.style.visibility = ''; };
   A.onfinish = done; A.oncancel = done;
 };

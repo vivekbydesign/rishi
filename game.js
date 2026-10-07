@@ -58,7 +58,7 @@ class Game {
     if (this.started) { this.move(this.startDir); return; }
     const go = () => {
       this.counting = false; if (this.mode !== 'play' || !this.held || this.started) return;
-      this.started = true; this.queue = .35; this.hooks.onRelease && this.hooks.onRelease();
+      this.started = true; this.queue = .75; if (this.hatch && !this.hatch.go) this.hatch.go = this.t; this.hooks.onRelease && this.hooks.onRelease();
       if (this.startDir != null) this.move(this.startDir);
     };
     if (user) { this.counting = false; this.hooks.onGoNow && this.hooks.onGoNow(); go(); return; }
@@ -68,7 +68,7 @@ class Game {
   move(sd) {
     this.startDir = null;
     if (sd != null) { const a = Math.abs(angDiff(this.dirGoal, sd)); this.turns = a < .1 ? [] : a > PI - .1 ? [this.at(this.headS)[0] < this.W / 2 ? 0 : PI, sd] : [sd]; }
-    this.held = false; if (this.hatch) this.hatch.go = this.t; this.hooks.onMove && this.hooks.onMove();
+    this.held = false; if (this.hatch && !this.hatch.go) this.hatch.go = this.t; this.hooks.onMove && this.hooks.onMove();
   }
   setTarget() { this.target = { x: clamp(this.input.x, -20, this.W + 20), y: clamp(this.input.y, this.top - 50, this.H), t: this.t }; }
   bottom() { return this.H - 78; }
@@ -198,11 +198,11 @@ class Game {
     const img = (o, x, y, ox, oy, rot = 0, s = 1, alpha = 1) => { g.save(); g.globalAlpha = alpha; g.translate(x, y); g.rotate(rot); g.scale(s * sc, s * sc); g.drawImage(o.img, ox, oy, o.w, o.h); g.restore(); };
     if (!front) {
       if (t < .55) this.drawCaterpillar(g, h.segs, 1 - ease.out(t / .55), h.head);
-      const k = ease.out(clamp((t - .2) / .8, 0, 1)), fade = h.go ? 1 - ease.inOut(clamp((this.t - h.go - .5) / .9, 0, 1)) : 1;
+      const k = ease.out(clamp((t - .2) / .8, 0, 1)), fade = h.go ? 1 - ease.inOut(clamp((this.t - h.go) / .55, 0, 1)) : 1;
       if (k * fade > 0) img(E.leaf, h.x - 6 * sc, h.y + 22 * sc, -E.leaf.w / 2, -E.leaf.h / 2, (1 - k) * .08, .92 + .08 * k, k * fade);
       if (!h.popped) {
         const d = clamp((t - .75) / .55, 0, 1), drop = (1 - ease.back(d)) * -26 * sc;
-        const shiver = [[2.4, 2.75, .1], [3.2, 3.55, .16], [4.0, 4.35, .22], [4.6, 4.8, .3]].reduce((m, [s0, s1, A]) => m + (t > s0 && t < s1 ? Math.sin((t - s0) * 34) * A * Math.sin(PI * (t - s0) / (s1 - s0)) : 0), 0);
+        const shiver = [[1.5, 1.8, .1], [2.05, 2.35, .16], [2.55, 2.8, .22], [2.95, 3.15, .3]].reduce((m, [s0, s1, A]) => m + (t > s0 && t < s1 ? Math.sin((t - s0) * 34) * A * Math.sin(PI * (t - s0) / (s1 - s0)) : 0), 0);
         const breath = 1 + Math.sin(t * 5) * .015 * clamp(t - 1.3, 0, 1);
         if (d > 0) img(E.whole, h.x, h.y + 14 * sc + drop, -17, -34, shiver, breath * 1.6, clamp(d * 4, 0, 1));
       }
@@ -366,7 +366,7 @@ class Game {
       const h = this.hatch; h.t += dt;
       if (h.shell && h.popped) { const sh = h.shell; sh.vy += 700 * dt; sh.x += sh.vx * dt; sh.y += sh.vy * dt; sh.a += sh.va * dt; }
       if (this.mode === 'hatch') { if (!h.said && h.t > .6) { h.said = 1; this.hooks.onHatchStart && this.hooks.onHatchStart(); }
-        if (h.t > (this.auto ? 2.7 : 4.8)) this.pop(); }
+        if (h.t > (this.auto ? 2.7 : 3.2)) this.pop(); }
       else if (this.mode !== 'play' || (h.go && t - h.go > 2)) this.hatch = null;
     }
     if (this.mode === 'hero') {
