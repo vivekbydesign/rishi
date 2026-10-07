@@ -46,6 +46,13 @@ export default async (req) => {
     return json(req, { best, rank: kept.findIndex(same) + 1, total: kept.length });
   }
 
+  // a guest's phone asks whether its RSVP is still on file (the host may have cleared it)
+  if (path === '/rsvp' && req.method === 'GET') {
+    const id = str(url.searchParams.get('id'), 16).replace(/[^a-z0-9]/gi, '');
+    if (!id) return json(req, { error: 'invalid' }, 400);
+    return json(req, { exists: !!(await db.get('rsvp/' + id)) });
+  }
+
   if (path === '/rsvp' && req.method === 'POST') {
     const b = await body(req); if (!b) return json(req, { error: 'bad json' }, 400);
     const id = str(b.id, 16).replace(/[^a-z0-9]/gi, ''), name = str(b.name, 40);

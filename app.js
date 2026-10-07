@@ -232,6 +232,11 @@ const openRsvp = go => { const r = readRsvp();
   if (r) { rs.a = r.a || 1; rs.k = r.k || 0; $('rsvpNote').value = r.note || ''; }
   $('rsvpName').value = (r && r.name) || state.name || ''; $('rsvpErr').textContent = ''; $('rsvpName').classList.remove('bad');
   setGo(go || (r && r.go) || 'yes'); paintCount(); show('rsvpSheet'); };
+// if the host cleared RSVPs, forget this phone's copy so the invite asks again
+const syncRsvp = async () => { const r = readRsvp(); if (!API || !r || !r.id || Date.now() - (r.at || 0) < 15000) return;
+  try { const res = await within(fetch(API + '/rsvp?id=' + encodeURIComponent(r.id), { cache: 'no-store' }), 4000); const j = res && res.ok ? await res.json() : null;
+    if (j && j.exists === false && (readRsvp() || {}).id === r.id) { localStorage.removeItem(RSVP_KEY); paintRsvp(); } } catch (e) { } };
+syncRsvp(); document.addEventListener('visibilitychange', () => { if (!document.hidden) syncRsvp(); });
 document.querySelectorAll('[data-rsvp]').forEach(b => b.onclick = () => openRsvp(b.dataset.rsvp));
 $('rsvpDone').onclick = () => openRsvp();
 document.querySelectorAll('#rsvpSheet .seg button').forEach(b => b.onclick = () => setGo(b.dataset.go));
