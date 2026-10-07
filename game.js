@@ -306,7 +306,7 @@ class Game {
     const left = onBoard + (this.pending ? this.pending.reduce((a, g) => a + g.length, 0) : 0);
     this.hooks.onEat && this.hooks.onEat(f.key, left, f.grp);
     if (left === 0) {
-      if (this.dayI === 5) { this.queue = 2.2; this.ache = this.t; this.fatOn = this.t + 1.9; this.hooks.onAche && this.hooks.onAche(); }
+      if (this.dayI === 5) { this.queue = 2.2; this.fatOn = this.t + 1.9; this.hooks.onAche && this.hooks.onAche(); }
       else if (this.dayI === 6) { this.foods = this.foods.filter(o => !o.decoy); this.timing = false; this.hooks.onFinish && this.hooks.onFinish(this.score(), this.bumps, this.aches); this.queue = -1; setTimeout(() => this.startTransform(), 1700); }
       else this.queue = .75;
     }
@@ -373,7 +373,7 @@ class Game {
       if (this.timing && this.started) this.elapsed += dt;
       if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / 1.4);
       const aching = this.ache && t - this.ache < 2;
-      this.speed = this.held ? 0 : 180 * this.fs * (1 - .22 * this.fat) * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
+      this.speed = this.held ? 0 : 180 * this.fs * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
       this.steer(dt);
       const h = this.at(this.headS); this.push(h[0] + Math.cos(this.dir) * this.speed * dt, h[1] + Math.sin(this.dir) * this.speed * dt); this.headS = this.cum[this.cum.length - 1];
       this.phase += this.speed * dt / (this.R * 2.4) * TAU;
