@@ -5,7 +5,7 @@ const $ = id => document.getElementById(id);
 const card = $('card');
 card.classList.add('boot');
 const NAME_KEY = 'rishi1.name', SCORE_KEY = 'rishi1.times';
-const state = { cdTok: 0, name: localStorage.getItem(NAME_KEY) || '', lastMs: 0, muted: localStorage.getItem('rishi1.muted') === '1' };
+const state = { cdTok: 0, dbTok: 0, name: localStorage.getItem(NAME_KEY) || '', lastMs: 0, muted: localStorage.getItem('rishi1.muted') === '1' };
 
 /* links */
 const MAP = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('2459 NE Daphne St, Issaquah, WA');
@@ -126,7 +126,7 @@ const banner = (day, what, tex, small) => {
   if (b.classList.contains('hold') && small !== 'hold') { b.classList.add('swapping'); state.banT = setTimeout(() => { set(); b.classList.remove('show', 'hold', 'slow'); b.classList.add('stay'); void b.offsetWidth; b.classList.remove('swapping'); }, 260); return; }
   set(); b.classList.remove('show', 'stay', 'swapping', 'hold'); b.classList.toggle('slow', small === 'slow'); void b.offsetWidth; b.classList.add('show'); if (small === 'hold') b.classList.add('hold');
 };
-const bannerOff = () => { $('dayBub').getAnimations({ subtree: true }).forEach(a => a.cancel()); clearTimeout(state.banT); $('banner').classList.remove('show', 'stay', 'swapping', 'hold'); };
+const bannerOff = () => { ++state.dbTok; $('dayBub').classList.remove('on'); document.querySelector('.daypill').style.visibility = ''; $('dayBub').getAnimations({ subtree: true }).forEach(a => a.cancel()); clearTimeout(state.banT); $('banner').classList.remove('show', 'stay', 'swapping', 'hold'); };
 const BW = ['One apple', 'Two pears', 'Three plums', 'Four strawberries', 'Five oranges', 'A feast!', 'One green leaf'];
 
 // vibrate on Android; iOS Safari (18+) has no vibrate, but toggling a hidden switch plays a system haptic
@@ -137,7 +137,8 @@ const goFlash = () => { const tok = ++state.cdTok; cdShow('Go!', 'blue', true); 
 // the day pill grows into a bubble announcing the day, then folds back into the pill
 const dayBubble = (day, what, tex, foods) => {
   const bub = $('dayBub'), pill = document.querySelector('.daypill'), [dEl, wEl, fEl] = bub.children;
-  bub.getAnimations({ subtree: true }).forEach(a => a.cancel());
+  bub.getAnimations({ subtree: true }).forEach(a => { a.onfinish = a.oncancel = null; a.cancel(); });
+  const tok = ++state.dbTok;
   dEl.textContent = day; dEl.style.backgroundImage = `url(assets/tex/${tex}.jpg)`; wEl.textContent = what; fEl.textContent = '';
   foods.forEach(k => { const im = document.createElement('img'); im.src = CP.foodURL(k); im.alt = ''; if (foods.length > 5) im.style.height = '20px'; fEl.appendChild(im); });
   bub.style.width = bub.style.height = ''; bub.classList.add('on');
@@ -146,7 +147,7 @@ const dayBubble = (day, what, tex, foods) => {
   pill.style.visibility = 'hidden';
   const A = bub.animate([{ ...S, easing: 'cubic-bezier(.2,1.25,.4,1)' }, { ...B, offset: .2 }, { ...B, offset: .78, easing: 'cubic-bezier(.6,0,.3,1)' }, S], { duration: D, fill: 'forwards' });
   [...bub.children].forEach((c, i) => c.animate([{ opacity: 0, transform: 'translateY(8px) scale(.96)' }, { opacity: 0, offset: .08 + i * .03 }, { opacity: 1, transform: 'none', offset: .24 + i * .03 }, { opacity: 1, transform: 'none', offset: .7 }, { opacity: 0, transform: 'translateY(-6px) scale(.97)', offset: .78 }, { opacity: 0 }].map(k => ({ easing: 'ease-out', ...k })), { duration: D, fill: 'forwards' }));
-  const done = () => { bub.classList.remove('on'); pill.style.visibility = ''; };
+  const done = () => { if (tok !== state.dbTok) return; bub.classList.remove('on'); pill.style.visibility = ''; };
   A.onfinish = done; A.oncancel = done;
 };
 let game;
@@ -155,7 +156,7 @@ const hooks = {
   onEat(key, left, grp) { if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
-  onRelease() { clearTimeout(state.coachT); coach(1, true); },
+  onRelease() { clearTimeout(state.coachT); },
   onMove() { clearTimeout(state.coachOff); state.coachOff = setTimeout(() => $('coach').classList.remove('show'), 4000); },
   // first swipe starts a 3-2-1; he sets off on "Go!"
   onCountdown(go) {
@@ -169,8 +170,8 @@ const hooks = {
   // swiped before the count finished: cancel it and go now
   onGoNow() { if (game.mode === 'play') goFlash(); },
   onSpawn() {},
-  onHatchStart() { banner('One night…', 'a little egg lay on a leaf', 'plum', 'hold'); },
-  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) { coach(1, true); game.release(); } }, 900); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
+  onHatchStart() { banner('One day…', 'a little egg lay on a leaf', 'plum', 'hold'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(1, true); }, 900); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },

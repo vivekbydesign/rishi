@@ -51,19 +51,11 @@ class Game {
   // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
   queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
   // after hatching: 3-2-1, then the clock runs and Monday's food appears, but he only sets off on the first swipe (in that direction)
-  // a swipe or tap from the player before or during the 3-2-1 skips straight to Go
-  release(d, user) {
+  // after hatching he waits; the first swipe (or arrow key / tap) sets him off that way, starts the clock and brings Monday
+  release(d) {
     if (!this.held || this.mode !== 'play') return;
-    if (d != null) this.startDir = d;
-    if (this.started) { this.move(this.startDir); return; }
-    const go = () => {
-      this.counting = false; if (this.mode !== 'play' || !this.held || this.started) return;
-      this.started = true; this.queue = .75; if (this.hatch && !this.hatch.go) this.hatch.go = this.t; this.hooks.onRelease && this.hooks.onRelease();
-      if (this.startDir != null) this.move(this.startDir);
-    };
-    if (user) { this.counting = false; this.hooks.onGoNow && this.hooks.onGoNow(); go(); return; }
-    if (this.counting) return;
-    if (this.hooks.onCountdown) { this.counting = true; this.hooks.onCountdown(go); } else go();
+    if (!this.started) { this.started = true; this.queue = .5; if (this.hatch && !this.hatch.go) this.hatch.go = this.t; this.hooks.onRelease && this.hooks.onRelease(); }
+    this.move(d);
   }
   move(sd) {
     this.startDir = null;
