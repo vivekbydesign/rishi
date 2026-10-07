@@ -52,9 +52,11 @@ class Game {
   queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
   // after hatching: 3-2-1, then the clock runs and Monday's food appears, but he only sets off on the first swipe (in that direction)
   // after hatching he waits; the first swipe (or arrow key / tap) sets him off that way, starts the clock and brings Monday
+  // report each player input for the host's game log: R/D/L/U, "tap" to start, or a tap-to-turn (lowercase)
+  said(d, tap) { if (this.mode !== 'play' || !this.hooks.onInput) return; const L = d == null ? 'tap' : 'RDLU'[Math.round((((d % (2 * PI)) + 2 * PI) % (2 * PI)) / (PI / 2)) % 4]; this.hooks.onInput(tap ? L.toLowerCase() : L, this.t); }
   release(d) {
     if (!this.held || this.mode !== 'play') return;
-    if (!this.started) { this.started = true; this.queue = .5; if (this.hatch && !this.hatch.go) this.hatch.go = this.t; this.hooks.onRelease && this.hooks.onRelease(); }
+    if (!this.started) { this.started = true; if (this.dayI >= 0) { this.timing = true; this.elapsed = 0; this.queue = 0; } else this.queue = .5; if (this.hatch && !this.hatch.go) this.hatch.go = this.t; this.hooks.onRelease && this.hooks.onRelease(); }
     this.move(d);
   }
   move(sd) {
@@ -70,14 +72,14 @@ class Game {
     const sw = { x: 0, y: 0, moved: false };
     this.cv.addEventListener('pointerdown', e => { if (this.mode !== 'play') return; e.preventDefault(); this.cv.setPointerCapture(e.pointerId); [this.input.x, this.input.y] = pos(e); this.input.down = true; sw.x = this.input.x; sw.y = this.input.y; sw.moved = false; this.hooks.onTouch && this.hooks.onTouch(); });
     this.cv.addEventListener('pointermove', e => { if (!this.input.down) return; [this.input.x, this.input.y] = pos(e); const dx = this.input.x - sw.x, dy = this.input.y - sw.y;
-      if (Math.hypot(dx, dy) > 22) { const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2); if (this.held) this.release(d, true); else this.queueTurn(d); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
-    const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return; if (this.held) { this.release(null, true); return; }
-      const h = this.at(this.headS), g = this.lastGoal();
-      this.queueTurn(Math.abs(Math.cos(g)) > .5 ? (this.input.y < h[1] ? -PI / 2 : PI / 2) : (this.input.x < h[0] ? PI : 0)); };
+      if (Math.hypot(dx, dy) > 22) { const d = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 0 : PI) : (dy > 0 ? PI / 2 : -PI / 2); this.said(d); if (this.held) this.release(d, true); else this.queueTurn(d); sw.x = this.input.x; sw.y = this.input.y; sw.moved = true; } });
+    const up = () => { if (!this.input.down) return; this.input.down = false; if (sw.moved || this.mode !== 'play') return; if (this.held) { this.said(null); this.release(null, true); return; }
+      const h = this.at(this.headS), g = this.lastGoal(), td = Math.abs(Math.cos(g)) > .5 ? (this.input.y < h[1] ? -PI / 2 : PI / 2) : (this.input.x < h[0] ? PI : 0);
+      this.said(td, 1); this.queueTurn(td); };
     this.cv.addEventListener('pointerup', up); this.cv.addEventListener('pointercancel', () => { this.input.down = false; });
     this.keys = {};
     const KM = { ArrowUp: -PI / 2, ArrowDown: PI / 2, ArrowLeft: PI, ArrowRight: 0, w: -PI / 2, s: PI / 2, a: PI, d: 0, W: -PI / 2, S: PI / 2, A: PI, D: 0 };
-    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if (this.held) this.release(k, true); else if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
+    addEventListener('keydown', e => { const k = KM[e.key]; if (k === undefined || this.mode !== 'play' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if (!e.repeat) this.said(k); if (this.held) this.release(k, true); else if (!e.repeat) this.queueTurn(k); e.preventDefault(); this.hooks.onTouch && this.hooks.onTouch(); });
     addEventListener('blur', () => { this.keys = {}; this.input.down = false; });
   }
 
@@ -180,7 +182,7 @@ class Game {
     const pts = []; for (let i = 0; i <= 24; i++) pts.push([x - 1 + i * .05, y + 6 * h.sc - i * 1.9 * h.sc]);
     this.setTrail(pts); this.headS = this.cum[this.cum.length - 1];
     this.dir = this.dirGoal = -PI / 2; this.turns = []; this.n = 3; this.nShow = 3; this.R = 13; this.phase = 0;
-    this.shrink = null; this.mode = 'play'; this.held = !this.auto; this.started = this.auto; this.queue = this.auto ? 1 : 0;
+    this.shrink = null; this.mode = 'play'; this.held = !this.auto; this.started = this.auto; this.queue = this.auto ? 1 : 2;
     h.shell = { x, y: y - 9 * h.sc, vx: -70, vy: -250, a: 0, va: -5.5 };
     for (let i = 0; i < 12; i++) { const a = -PI / 2 + (this.rng() - .5) * 2.4, v = 60 + this.rng() * 120; this.particles.push({ x, y: y - 4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.2 + this.rng() * 2, col: '#f4ead2', life: .6 + this.rng() * .4, age: 0, g: 420 }); }
     this.hooks.onHatch && this.hooks.onHatch();
@@ -210,7 +212,7 @@ class Game {
     this.foods = this.foods.filter(o => !o.decoy || o.eaten >= 0);
     const d = DAYS[this.dayI]; if (!d) return;
     this.pending = this.groups(d); this.spawn(this.pending.shift());
-    if (this.dayI === 0) { this.timing = true; this.elapsed = 0; }
+    if (this.dayI === 0 && this.started) { this.timing = true; this.elapsed = 0; }
     this.hooks.onDay && this.hooks.onDay(this.dayI, d);
   }
   // weekdays come in random side-by-side bundles (one sweep eats them all); Saturday comes in rows of three
@@ -515,7 +517,7 @@ class Game {
     if (!this.timing) return;
     this.mode = 'over'; this.timing = false; this.speed = 0; this.wig = 1.6; this.turns = []; this.input.down = false;
     for (let i = 0; i < 10; i++) { const a = this.dir + PI + (this.rng() - .5) * 2.2, v = 50 + this.rng() * 110; this.particles.push({ x: h[0], y: h[1], vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.4 + this.rng() * 2.2, col: ['#e2412b', '#4c9a2a', '#f2c230'][i % 3], life: .5 + this.rng() * .4, age: 0, g: 300 }); }
-    this.hooks.onWall && this.hooks.onWall(this.score());
+    this.hooks.onWall && this.hooks.onWall(this.score(), h[0] <= b.x0 ? 'left' : h[0] >= b.x1 ? 'right' : h[1] <= b.y0 ? 'top' : 'bottom');
   }
   // the butterfly drifts in from the left, loops past the 1, and leaves top right
   flyBy(emerge) {

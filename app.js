@@ -160,7 +160,7 @@ const dayBubble = (day, what, tex, foods) => {
 };
 let game;
 const hooks = {
-  onDay(i, d) { if (state.run) { state.run.day = d.day; keepRun(); } $('dayName').textContent = d.day; hudFoods(d); dayBubble('On ' + d.day, BW[i], d.tex, d.foods); chime(); },
+  onDay(i, d) { if (i === 0 && game.held) { clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(1, true); }, 1900); } if (state.run) { state.run.day = d.day; keepRun(); } $('dayName').textContent = d.day; hudFoods(d); dayBubble('On ' + d.day, BW[i], d.tex, d.foods); chime(); },
   onEat(key, left, grp) { keepRun(); if (grp !== state.munchGrp) { state.munchGrp = grp; munch(); } if (navigator.vibrate) navigator.vibrate(12); const im = [...$('dayFood').querySelectorAll('img:not(.got)')].find(x => x.dataset.k === key); if (im) im.classList.add('got'); },
   onBump() { if (navigator.vibrate) navigator.vibrate(40); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
   onTouch() { $('coach').classList.remove('show'); },
@@ -179,7 +179,7 @@ const hooks = {
   onGoNow() { if (game.mode === 'play') goFlash(); },
   onSpawn() {},
   onHatchStart() { banner('One day…', 'a little egg lay on a leaf', 'plum', 'hold'); },
-  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(1, true); }, 2100); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
@@ -188,7 +188,8 @@ const hooks = {
   onEmerge() { shimmer(); if (navigator.vibrate) navigator.vibrate([20, 40, 20]); },
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
-  onWall() { endRun('lost'); haptic([40, 30, 60], 2); wop(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
+  onInput(d, t) { const r = state.run; if (!r) return; if (r.t0 == null) r.t0 = t; if (r.moves.length < 60) r.moves.push(d + ' ' + (t - r.t0).toFixed(1)); },
+  onWall(secs, side) { if (state.run) state.run.wall = side; endRun('lost'); haptic([40, 30, 60], 2); wop(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
 };
 
 /* every game is logged for the host: who played, how far they got, and how it ended.
@@ -196,10 +197,10 @@ const hooks = {
 const RUN_KEY = 'rishi1.run';
 const device = () => /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'Computer';
 const sendRun = r => { if (!API || !r) return; try { fetch(API + '/play', { method: 'POST', body: JSON.stringify(r), keepalive: true }).catch(() => {}); } catch (e) {} };
-const runNow = () => { const r = state.run; if (!r || !game) return r; return Object.assign(r, { eaten: game.eaten, total: CP.TOTAL_FOODS, t: Math.round(game.score() * 100) / 100, bumps: game.bumps, aches: game.aches, moved: !!game.started }); };
+const runNow = () => { const r = state.run; if (!r || !game) return r; return Object.assign(r, { swipes: r.moves.length, dur: r.t0 != null ? +(game.t - r.t0).toFixed(1) : 0, first: r.moves.length ? r.moves[0].split(' ')[0] : '', eaten: game.eaten, total: CP.TOTAL_FOODS, t: Math.round(game.score() * 100) / 100, bumps: game.bumps, aches: game.aches, moved: !!game.started }); };
 const keepRun = () => { const r = runNow(); if (r) try { localStorage.setItem(RUN_KEY, JSON.stringify(r)); } catch (e) {} };
 const endRun = result => { const r = runNow(); if (!r) return; state.run = null; localStorage.removeItem(RUN_KEY); r.result = result; r.end = Date.now(); sendRun(r); };
-const beginRun = () => { endRun('quit'); state.run = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), name: state.name || '', pid: PID, dev: device(), at: Date.now(), day: '' }; keepRun(); };
+const beginRun = () => { endRun('quit'); state.run = { moves: [], id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), name: state.name || '', pid: PID, dev: device(), at: Date.now(), day: '' }; keepRun(); };
 try { const old = JSON.parse(localStorage.getItem(RUN_KEY) || 'null'); localStorage.removeItem(RUN_KEY); if (old) { old.result = 'quit'; old.end = old.end || Date.now(); sendRun(old); } } catch (e) {}
 addEventListener('pagehide', () => { if (state.run && game && /play|hatch/.test(game.mode)) endRun('quit'); });
 
