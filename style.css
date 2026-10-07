@@ -412,3 +412,5 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .daybub{padding:10px 22px 12px}.db-day{font-size:30px;background-size:130px}.db-what{font-size:15px;letter-spacing:.12em}.db-food{margin-top:6px;max-width:240px}.db-food img{height:22px}
 .coach-t span{display:inline-block}.coach.show .coach-t span{animation:coachWave 2.6s ease-in-out infinite;animation-delay:calc(var(--k) * 45ms)}@keyframes coachWave{0%,40%,100%{transform:none}20%{transform:translateY(-2px) scale(1.06)}}@media (prefers-reduced-motion:reduce){.coach.show .coach-t span{animation:none}}
 #introSheet .rules-txt span{white-space:nowrap;text-wrap:nowrap}#introSheet .rules-txt{font-size:min(17px,4.6cqw)}
+.banner.stay{animation-duration:1.8s}
+.pan .invite,.pan .deco{transition:opacity .7s var(--ease-out),transform 1s cubic-bezier(.2,.8,.2,1)}.pan .dock{transition:opacity .6s var(--ease-out) .35s}@media (prefers-reduced-motion:reduce){.pan .invite,.pan .deco{transition:opacity .4s}}

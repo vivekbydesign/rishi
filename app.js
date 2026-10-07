@@ -172,7 +172,7 @@ const hooks = {
   onGoNow() { if (game.mode === 'play') goFlash(); },
   onSpawn() {},
   onHatchStart() { banner('One day…', 'a little egg lay on a leaf', 'plum', 'hold'); },
-  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(1, true); }, 3100); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
+  onHatch() { if (navigator.vibrate) navigator.vibrate(18); tone(1318, 0, .5, 'sine', .1); clearTimeout(state.coachT); state.coachT = setTimeout(() => { if (game.mode === 'play' && game.held) coach(1, true); }, 2100); banner('Pop!', 'out came a tiny caterpillar', 'apple', 'slow'); },
   onBite() { munch(true); if (navigator.vibrate) navigator.vibrate(10); },
   onAche() { banner('Oh no!', 'A tummy ache…', 'green', true); },
   onDecoy() { haptic(25); const sn = $('sweetNote'); sn.classList.remove('show'); void sn.offsetWidth; sn.classList.add('show'); clearTimeout(state.sweetT); state.sweetT = setTimeout(() => sn.classList.remove('show'), 2200); $('coach').classList.remove('show'); if (navigator.vibrate) navigator.vibrate([30, 30, 50]); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); },
@@ -199,7 +199,7 @@ function goInvite(skip) {
   // leaving a run for the invite: the butterfly flutters across the invite, then he crawls back in
   // skipping: a blank page, the butterfly unfolds in the middle, flies off and the invite pans up into view
   if (fromWelcome || ['play', 'over', 'hatch', 'transform'].includes(game.mode)) { card.classList.remove('ready', 'calm'); card.classList.add('emerging', 'pan'); clearTimeout(state.calmT); clearTimeout(state.panT);
-    game.flyBy(true); setTimeout(shimmer, 250); state.calmT = setTimeout(() => card.classList.remove('emerging'), 1200); state.panT = setTimeout(() => card.classList.remove('pan'), 3000); }
+    game.flyBy(true); setTimeout(shimmer, 250); state.calmT = setTimeout(() => card.classList.remove('emerging'), 700); state.panT = setTimeout(() => card.classList.remove('pan'), 2000); }
 }
 async function results() {
   const secs = state.lastTime, r = await saveScoreAll(state.name || 'Guest', secs);
