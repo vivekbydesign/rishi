@@ -199,7 +199,7 @@ function goInvite(skip) {
   // leaving a run for the invite: the butterfly flutters across the invite, then he crawls back in
   // skipping: a blank page, the butterfly unfolds in the middle, flies off and the invite pans up into view
   if (fromWelcome || ['play', 'over', 'hatch', 'transform'].includes(game.mode)) { card.classList.remove('ready', 'calm'); card.classList.add('emerging', 'pan'); clearTimeout(state.calmT); clearTimeout(state.panT);
-    game.flyBy(true); setTimeout(shimmer, 250); state.calmT = setTimeout(() => card.classList.remove('emerging'), 700); state.panT = setTimeout(() => card.classList.remove('pan'), 2000); }
+    game.flyBy(true); setTimeout(shimmer, 250); state.calmT = setTimeout(() => card.classList.remove('emerging'), 500); state.panT = setTimeout(() => card.classList.remove('pan'), 2000); }
 }
 async function results() {
   const secs = state.lastTime, r = await saveScoreAll(state.name || 'Guest', secs);
