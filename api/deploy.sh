@@ -3,6 +3,6 @@
 set -e
 cd "$(dirname "$0")"
 rm -rf public && mkdir public
-cp ../index.html ../style.css ../config.js ../art.js ../game.js ../app.js ../rishi.ics public/
+cp ../index.html ../style.css ../config.js ../art.js ../game.js ../app.js ../rishi.ics ../og.jpg public/
 cp -R ../assets public/
 npx -y netlify-cli@latest deploy --prod --dir public
