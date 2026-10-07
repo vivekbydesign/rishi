@@ -14,37 +14,45 @@ export default async (req) => {
   const db = getStore({ name: 'rishi', consistency: 'strong' });
   const url = new URL(req.url), path = url.pathname.replace(/^\/api/, '').replace(/\/+$/, '') || '/';
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req) });
-  const getScores = async () => (await db.get('scores', { type: 'json' })) || [];
+  // each player has their own blob ("score/<name>"), so two people finishing at once never overwrite each other.
+  // the old single "scores" list is still read so earlier times are kept.
+  const TEST = /^test\s*\d*$/i, key = n => encodeURIComponent(n.toLowerCase());
+  const getScores = async () => {
+    const m = new Map(((await db.get('scores', { type: 'json' })) || []).map(s => [s.name.toLowerCase(), s]));
+    const { blobs } = await db.list({ prefix: 'score/' });
+    (await Promise.all(blobs.map(b => db.get(b.key, { type: 'json' })))).forEach(s => { if (!s) return; const k = s.name.toLowerCase(), o = m.get(k); if (!o || s.t <= o.t) m.set(k, s); });
+    return [...m.values()].filter(s => !TEST.test(s.name)).sort((a, b) => a.t - b.t);
+  };
 
-  if (path === '/scores' && req.method === 'GET') return json(req, (await getScores()).filter(s => !/^test\s*\d*$/i.test(s.name)).slice(0, 30).map(({ name, t }) => ({ name, t })));
+  if (path === '/scores' && req.method === 'GET') return json(req, (await getScores()).slice(0, 30).map(({ name, t }) => ({ name, t })));
 
   // one name per phone: the first phone to use a name keeps it (pid = random id saved on the phone)
   const claim = async (name, pid) => {
     if (!pid) return true;
-    const names = (await db.get('names', { type: 'json' })) || {}, k = name.toLowerCase();
-    if (names[k] && names[k] !== pid) return false;
-    if (!names[k]) { names[k] = pid; await db.setJSON('names', names); }
-    return true;
+    const k = 'name/' + key(name), mine = await db.get(k);
+    if (mine) return mine === pid;
+    const old = ((await db.get('names', { type: 'json' })) || {})[name.toLowerCase()];
+    if (old && old !== pid) return false;
+    await db.set(k, pid); return true;
   };
 
   if (path === '/name' && req.method === 'POST') {
     const b = await body(req); if (!b) return json(req, { error: 'bad json' }, 400);
     const name = str(b.name, 20); if (!name) return json(req, { error: 'invalid' }, 400);
+    if (TEST.test(name)) return json(req, { ok: true });
     return json(req, { ok: await claim(name, str(b.pid, 40)) });
   }
 
   if (path === '/scores' && req.method === 'POST') {
     const b = await body(req); if (!b) return json(req, { error: 'bad json' }, 400);
-    const name = str(b.name, 20), t = +b.t;
+    const name = str(b.name, 20), t = Math.round(+b.t * 100) / 100;
     if (!name || !(t >= 5 && t <= 3600)) return json(req, { error: 'invalid' }, 400);
-    if (/^test\s*\d*$/i.test(name)) return json(req, { best: false, rank: 0, total: 0, test: true });
+    if (TEST.test(name)) return json(req, { best: false, rank: 0, total: 0, test: true });
     if (!(await claim(name, str(b.pid, 40)))) return json(req, { error: 'taken' }, 409);
-    const list = await getScores(), same = s => s.name.toLowerCase() === name.toLowerCase(), i = list.findIndex(same);
-    let best = true;
-    if (i >= 0) { if (list[i].t <= t) best = false; else list[i] = { name, t, at: Date.now() }; } else list.push({ name, t, at: Date.now() });
-    list.sort((a, b) => a.t - b.t); const kept = list.slice(0, 200);
-    if (best) await db.setJSON('scores', kept);
-    return json(req, { best, rank: kept.findIndex(same) + 1, total: kept.length });
+    const list = await getScores(), same = s => s.name.toLowerCase() === name.toLowerCase(), prev = list.find(same);
+    const best = !prev || t < prev.t;
+    if (best) { await db.setJSON('score/' + key(name), { name, t, at: Date.now() }); if (prev) prev.t = t, prev.name = name; else list.push({ name, t }); list.sort((a, b) => a.t - b.t); }
+    return json(req, { best, rank: list.findIndex(same) + 1, total: list.length });
   }
 
   // a guest's phone asks whether its RSVP is still on file (the host may have cleared it)

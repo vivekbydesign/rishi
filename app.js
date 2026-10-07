@@ -83,7 +83,10 @@ const post = (path, data) => API ? fetch(API + path, { method: 'POST', headers: 
 const within = (p, ms) => Promise.race([p, new Promise(r => setTimeout(() => r(null), ms))]);
 // local copy answers instantly; the shared board (when API is set) is the source of truth
 const isTest = n => /^test\s*\d*$/i.test((n || '').trim());
-const saveScoreAll = async (name, t) => { if (isTest(name)) return { test: true }; const local = saveScore(name, t); const remote = await within(post('/scores', { name, t, pid: PID }), 2500); loadRemote(); return remote && remote.rank ? remote : local; };
+const saveScoreAll = async (name, t) => { if (isTest(name)) return { test: true }; const local = saveScore(name, t); const remote = await within(post('/scores', { name, t, pid: PID }), 2500); loadRemote(); if (remote && remote.rank) return remote;
+  // server slow or offline: rank against the last shared board we saw plus this phone's times, not this phone alone
+  const all = mergeMine(cachedBoard() || []), k = name.toLowerCase(), rank = all.findIndex(s => s.name.toLowerCase() === k) + 1;
+  return rank ? { best: local.best, rank, total: all.length } : local; };
 // the shared board is fetched early and kept in localStorage so the sheet opens with everyone already there
 const BOARD_KEY = 'rishi1.board';
 const cachedBoard = () => { try { const l = JSON.parse(localStorage.getItem(BOARD_KEY)); return Array.isArray(l) ? l.filter(s => !isTest(s.name)) : null; } catch (e) { return null; } };
