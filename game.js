@@ -213,6 +213,7 @@ class Game {
     const d = DAYS[this.dayI]; if (!d) return;
     this.pending = this.groups(d); this.spawn(this.pending.shift());
     if (this.dayI === 0 && this.started) { this.timing = true; this.elapsed = 0; }
+    if (this.dayI === 0 && this.hatch && !this.hatch.go) this.hatch.go = this.t; // the hatching leaf fades as Monday arrives
     this.hooks.onDay && this.hooks.onDay(this.dayI, d);
   }
   // weekdays come in random side-by-side bundles (one sweep eats them all); Saturday comes in rows of three
@@ -237,8 +238,8 @@ class Game {
       pts = keys.map((_, i) => [Math.cos(a0 + i / n * TAU) * rad, Math.sin(a0 + i / n * TAU) * rad * .92]); }
     const ex = Math.max(...pts.map((p, i) => Math.abs(p[0]) + ws[i] / 2)) + 8, ey = Math.max(...pts.map((p, i) => Math.abs(p[1]) + hs[i] / 2)) + 8;
     let x0 = Math.min(ex, this.W / 2), x1 = Math.max(this.W - ex, this.W / 2), y0 = Math.min(top + ey * .5, (top + bot) / 2), y1 = Math.max(bot - ey * .3, (top + bot) / 2);
-    // Monday's apple stays in the middle of the page, well away from the edges, so the first bite is easy
-    if (this.dayI === 0) { x0 = Math.max(x0, this.W * .28); x1 = Math.min(x1, this.W * .72); y0 = Math.max(y0, this.H * .32); y1 = Math.min(y1, this.H * .7); }
+    // Monday's apple is never right next to an edge, so the first bite is easy
+    if (this.dayI === 0) { const b = this.bounds(), M = 80; x0 = Math.max(x0, b.x0 + M); x1 = Math.min(x1, b.x1 - M); y0 = Math.max(y0, b.y0 + M); y1 = Math.min(y1, b.y1 - M); }
     const away = this.foods.filter(f => f.eaten < 0);
     let best = null, bestD = -Infinity;
     for (let k = 0; k < 160; k++) {
