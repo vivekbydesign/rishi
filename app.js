@@ -109,7 +109,7 @@ let openSheet = $('introSheet');
 const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); requestAnimationFrame(scatterDots); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
-const COACH = fine ? ['Arrow keys to move\nAvoid the edges', 'Arrow keys to move\nAvoid the edges'] : ['Swipe to move\nAvoid the edges', 'Swipe to move\nAvoid the edges'];
+const COACH = fine ? ['Arrow keys to move, avoid the edges', 'Arrow keys to move, avoid the edges'] : ['Swipe to move, avoid the edges', 'Swipe to move, avoid the edges'];
 const coach = (i, on) => { document.querySelector('.coach-t').textContent = COACH[i]; $('coach').classList.toggle('show', on); };
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && (game.mode === 'play' || game.mode === 'over')) goInvite(); return; }
@@ -142,7 +142,7 @@ const dayBubble = (day, what, tex, foods) => {
   dEl.textContent = day; dEl.style.backgroundImage = `url(assets/tex/${tex}.jpg)`; wEl.textContent = what; fEl.textContent = '';
   foods.forEach(k => { const im = document.createElement('img'); im.src = CP.foodURL(k); im.alt = ''; if (foods.length > 5) im.style.height = '20px'; fEl.appendChild(im); });
   bub.style.width = bub.style.height = ''; bub.classList.add('on');
-  const r = bub.getBoundingClientRect(), p = pill.getBoundingClientRect(), D = 2800;
+  const r = bub.getBoundingClientRect(), p = pill.getBoundingClientRect(), D = 1900;
   const S = { width: p.width + 'px', height: p.height + 'px', borderRadius: '22px' }, B = { width: r.width + 'px', height: r.height + 'px', borderRadius: '30px' };
   pill.style.visibility = 'hidden';
   const A = bub.animate([{ ...S, easing: 'cubic-bezier(.2,1.25,.4,1)' }, { ...B, offset: .2 }, { ...B, offset: .78, easing: 'cubic-bezier(.6,0,.3,1)' }, S], { duration: D, fill: 'forwards' });
