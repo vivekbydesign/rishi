@@ -140,7 +140,7 @@ const dayBubble = (day, what, tex, foods) => {
   bub.getAnimations({ subtree: true }).forEach(a => { a.onfinish = a.oncancel = null; a.cancel(); });
   const tok = ++state.dbTok;
   dEl.textContent = day; dEl.style.backgroundImage = `url(assets/tex/${tex}.jpg)`; wEl.textContent = what; fEl.textContent = '';
-  foods.forEach(k => { const im = document.createElement('img'); im.src = CP.foodURL(k); im.alt = ''; if (foods.length > 5) im.style.height = '20px'; fEl.appendChild(im); });
+  foods.forEach(k => { const im = document.createElement('img'); im.src = CP.foodURL(k); im.alt = ''; if (foods.length > 5) im.style.height = '17px'; fEl.appendChild(im); });
   bub.style.width = bub.style.height = ''; bub.classList.add('on');
   const r = bub.getBoundingClientRect(), p = pill.getBoundingClientRect(), D = 1900;
   const S = { width: p.width + 'px', height: p.height + 'px', borderRadius: '22px' }, B = { width: r.width + 'px', height: r.height + 'px', borderRadius: '30px' };
