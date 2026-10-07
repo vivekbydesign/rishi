@@ -18,10 +18,26 @@ export default async (req) => {
 
   if (path === '/scores' && req.method === 'GET') return json(req, (await getScores()).slice(0, 30).map(({ name, t }) => ({ name, t })));
 
+  // one name per phone: the first phone to use a name keeps it (pid = random id saved on the phone)
+  const claim = async (name, pid) => {
+    if (!pid) return true;
+    const names = (await db.get('names', { type: 'json' })) || {}, k = name.toLowerCase();
+    if (names[k] && names[k] !== pid) return false;
+    if (!names[k]) { names[k] = pid; await db.setJSON('names', names); }
+    return true;
+  };
+
+  if (path === '/name' && req.method === 'POST') {
+    const b = await body(req); if (!b) return json(req, { error: 'bad json' }, 400);
+    const name = str(b.name, 20); if (!name) return json(req, { error: 'invalid' }, 400);
+    return json(req, { ok: await claim(name, str(b.pid, 40)) });
+  }
+
   if (path === '/scores' && req.method === 'POST') {
     const b = await body(req); if (!b) return json(req, { error: 'bad json' }, 400);
     const name = str(b.name, 20), t = +b.t;
     if (!name || !(t >= 5 && t <= 3600)) return json(req, { error: 'invalid' }, 400);
+    if (!(await claim(name, str(b.pid, 40)))) return json(req, { error: 'taken' }, 409);
     const list = await getScores(), same = s => s.name.toLowerCase() === name.toLowerCase(), i = list.findIndex(same);
     let best = true;
     if (i >= 0) { if (list[i].t <= t) best = false; else list[i] = { name, t, at: Date.now() }; } else list.push({ name, t, at: Date.now() });
