@@ -189,7 +189,7 @@ const hooks = {
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
   onInput(d, t) { const r = state.run; if (!r) return; if (r.t0 == null) r.t0 = t; if (r.moves.length < 60) r.moves.push(d + ' ' + (t - r.t0).toFixed(1)); },
-  onWall(secs, side) { if (state.run) state.run.wall = side; endRun('lost'); haptic([40, 30, 60], 2); wop(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); clearTimeout(state.overT); state.overT = setTimeout(() => { if (game.mode === 'over') show('overSheet'); }, 900); },
+  onWall(n, side) { if (state.run) { state.run.wall = side; keepRun(); } haptic([40, 30, 60], 2); wop(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); },
 };
 
 /* every game is logged for the host: who played, how far they got, and how it ended.
@@ -197,7 +197,7 @@ const hooks = {
 const RUN_KEY = 'rishi1.run';
 const device = () => /iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'Computer';
 const sendRun = r => { if (!API || !r) return; try { fetch(API + '/play', { method: 'POST', body: JSON.stringify(r), keepalive: true }).catch(() => {}); } catch (e) {} };
-const runNow = () => { const r = state.run; if (!r || !game) return r; return Object.assign(r, { swipes: r.moves.length, dur: r.t0 != null ? +(game.t - r.t0).toFixed(1) : 0, first: r.moves.length ? r.moves[0].split(' ')[0] : '', eaten: game.eaten, total: CP.TOTAL_FOODS, t: Math.round(game.score() * 100) / 100, bumps: game.bumps, aches: game.aches, moved: !!game.started }); };
+const runNow = () => { const r = state.run; if (!r || !game) return r; return Object.assign(r, { swipes: r.moves.length, dur: r.t0 != null ? +(game.t - r.t0).toFixed(1) : 0, first: r.moves.length ? r.moves[0].split(' ')[0] : '', eaten: game.eaten, total: CP.TOTAL_FOODS, t: Math.round(game.score() * 100) / 100, bumps: game.bumps, walls: game.walls || 0, aches: game.aches, moved: !!game.started }); };
 const keepRun = () => { const r = runNow(); if (r) try { localStorage.setItem(RUN_KEY, JSON.stringify(r)); } catch (e) {} };
 const endRun = result => { const r = runNow(); if (!r) return; state.run = null; localStorage.removeItem(RUN_KEY); r.result = result; r.end = Date.now(); sendRun(r); };
 const beginRun = () => { endRun('quit'); state.run = { moves: [], id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), name: state.name || '', pid: PID, dev: device(), at: Date.now(), day: '' }; keepRun(); };

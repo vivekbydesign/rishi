@@ -3,6 +3,7 @@
 'use strict';
 const { clamp, lerp, ease, angDiff, rng, TAU, IMG, SEG, FOOD, DPR } = CP;
 const PI = Math.PI;
+const DAZE = 1.3; // seconds he stands dazed after bumping into an edge
 
 const DAYS = CP.DAYS = [
   { day: 'Monday', what: 'he ate through one apple.', foods: ['apple'], tex: 'apple' },
@@ -49,7 +50,7 @@ class Game {
   // a tap sets where he is heading; he keeps going there after the finger lifts
   lastGoal() { return this.turns.length ? this.turns[this.turns.length - 1] : this.dirGoal; }
   // queue a 90° turn (up to two ahead, like classic snake); ignore straight-on and straight-back
-  queueTurn(d) { const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
+  queueTurn(d) { if (this.dazed && this.dazed()) return false; const a = Math.abs(angDiff(this.lastGoal(), d)); if (a < .1 || a > PI - .1 || this.turns.length >= 2) return false; this.turns.push(d); return true; }
   // after hatching: 3-2-1, then the clock runs and Monday's food appears, but he only sets off on the first swipe (in that direction)
   // after hatching he waits; the first swipe (or arrow key / tap) sets him off that way, starts the clock and brings Monday
   // report each player input for the host's game log: R/D/L/U, "tap" to start, or a tap-to-turn (lowercase)
@@ -173,7 +174,7 @@ class Game {
     const segs = this.inchSegs();
     this.hatch = { t: 0, segs: segs.map(o => ({ ...o })), head: this.inchHead.slice(), x: this.W / 2, y: this.H * .5, popped: 0, sc: clamp(this.W / 390, .85, 1.3) };
     this.inch = null; this.hero = null; this.mode = 'hatch';
-    this.dayI = -1; this.held = false; this.counting = false; this.startDir = null; this.started = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
+    this.dayI = -1; this.held = false; this.counting = false; this.startDir = null; this.started = false; this.eaten = 0; this.elapsed = 0; this.timing = false; this.queue = 0; this.penalty = 0; this.bumps = 0; this.walls = 0; this.daze = 0; this.aches = 0; this.safeUntil = 0; this.target = null; this.fat = 0; this.fatOn = 0;
     this.foods = []; this.pending = []; this.spawnAt = 0; this.particles = []; this.ache = 0; this.input.down = false; this.keys = {}; this.turns = []; this.dirGoal = -PI / 2;
   }
   // pop! the egg cracks and a tiny caterpillar climbs out heading up and to the right
@@ -378,7 +379,7 @@ class Game {
       if (this.timing && this.started) this.elapsed += dt;
       if (this.fatOn && t > this.fatOn) this.fat = Math.min(1, this.fat + dt / 1.4);
       const aching = this.ache && t - this.ache < 2;
-      this.speed = this.held ? 0 : 180 * this.fs * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
+      this.speed = this.held || this.dazed() ? 0 : 180 * this.fs * (aching ? .35 : 1) * (sh && sh.t < 1 ? .2 + .8 * ease.inOut(sh.t) : 1);
       this.steer(dt);
       const h = this.at(this.headS); this.push(h[0] + Math.cos(this.dir) * this.speed * dt, h[1] + Math.sin(this.dir) * this.speed * dt); this.headS = this.cum[this.cum.length - 1];
       this.phase += this.speed * dt / (this.R * 2.4) * TAU;
@@ -513,14 +514,32 @@ class Game {
   // the field wraps: out one side, back in the other (the whole trail shifts, segments wrap one by one when drawn)
   field() { const p = this.R * 1.6; return { x0: -p, y0: this.top - 30 - p, w: this.W + p * 2, h: this.H - 40 - this.top + 30 + p * 2 }; }
   wrapPt(x, y) { const f = this.field(); return [f.x0 + (((x - f.x0) % f.w) + f.w) % f.w, f.y0 + (((y - f.y0) % f.h) + f.h) % f.h]; }
-  // the edges of the page are walls: touching one ends the run
+  // the edges of the page are walls: touching one costs time and leaves him dazed for a moment, then he carries on along the wall
   bounds() { const m = this.R * .5; return { x0: m, x1: this.W - m, y0: this.top - 30, y1: this.H - 34 - m }; }
+  dazed() { return this.daze && this.t - this.daze < DAZE; }
   checkWall(h) {
     const b = this.bounds(); if (h[0] > b.x0 && h[0] < b.x1 && h[1] > b.y0 && h[1] < b.y1) return;
-    if (!this.timing) return;
-    this.mode = 'over'; this.timing = false; this.speed = 0; this.wig = 1.6; this.turns = []; this.input.down = false;
-    for (let i = 0; i < 10; i++) { const a = this.dir + PI + (this.rng() - .5) * 2.2, v = 50 + this.rng() * 110; this.particles.push({ x: h[0], y: h[1], vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.4 + this.rng() * 2.2, col: ['#e2412b', '#4c9a2a', '#f2c230'][i % 3], life: .5 + this.rng() * .4, age: 0, g: 300 }); }
-    this.hooks.onWall && this.hooks.onWall(this.score(), h[0] <= b.x0 ? 'left' : h[0] >= b.x1 ? 'right' : h[1] <= b.y0 ? 'top' : 'bottom');
+    if (!this.timing || this.dazed()) return;
+    const side = h[0] <= b.x0 ? 'left' : h[0] >= b.x1 ? 'right' : h[1] <= b.y0 ? 'top' : 'bottom';
+    this.walls++; this.penalty += 2; this.daze = this.t; this.safeUntil = this.t + DAZE + .8; this.wig = 1.4; this.turns = [];
+    // step back inside and face along the wall, toward the middle of the page
+    const T = this.trail, L = T.length - 1, m = this.R * 1.1, x = clamp(h[0], b.x0 + m, b.x1 - m), y = clamp(h[1], b.y0 + m, b.y1 - m);
+    if (L > 0) { this.cum[L] = this.cum[L - 1] + Math.hypot(x - T[L - 1][0], y - T[L - 1][1]); T[L] = [x, y]; this.headS = this.cum[L]; }
+    const cx = this.W / 2 - x, cy = (b.y0 + b.y1) / 2 - y, g = Math.round(this.dirGoal / (PI / 2)) * (PI / 2);
+    this.dirGoal = [g + PI / 2, g - PI / 2].sort((p, q) => (Math.cos(q) * cx + Math.sin(q) * cy) - (Math.cos(p) * cx + Math.sin(p) * cy))[0];
+    for (let i = 0; i < 10; i++) { const a = this.dir + PI + (this.rng() - .5) * 2.2, v = 50 + this.rng() * 110; this.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.4 + this.rng() * 2.2, col: ['#e2412b', '#4c9a2a', '#f2c230'][i % 3], life: .5 + this.rng() * .4, age: 0, g: 300 }); }
+    this.particles.push({ x: clamp(x, 34, this.W - 34), y: Math.max(y - this.R * 2, b.y0 + 20), vx: 0, vy: -40, r: 0, txt: '+2s', life: 1.3, age: 0, g: 0, drag: .4 });
+    this.hooks.onWall && this.hooks.onWall(this.walls, side);
+  }
+  // little stars circling his head while he's dazed
+  drawDaze(g, x, y, R) {
+    const k = 1 - (this.t - this.daze) / DAZE, a = clamp(k * 4, 0, 1);
+    g.save(); g.globalAlpha *= a; g.lineJoin = 'round'; g.lineWidth = 1.8; g.strokeStyle = '#3a2a12'; g.fillStyle = '#f2c230';
+    for (let i = 0; i < 3; i++) {
+      const th = this.t * 7 + i * TAU / 3, sx = x + Math.cos(th) * R * 1.25, sy = y - R * 1.15 + Math.sin(th) * R * .38, r = R * (.36 + .07 * Math.sin(th));
+      g.beginPath(); for (let j = 0; j < 10; j++) { const q = j * PI / 5 - PI / 2 + this.t * 3, rr = j % 2 ? r * .45 : r; g.lineTo(sx + Math.cos(q) * rr, sy + Math.sin(q) * rr); } g.closePath(); g.fill(); g.stroke();
+    }
+    g.restore();
   }
   // the butterfly drifts in from the left, loops past the 1, and leaves top right
   flyBy(emerge) {
@@ -575,7 +594,9 @@ class Game {
     const tilt = hero ? this.inchTilt : clamp(Math.atan2(Math.sin(d), Math.abs(Math.cos(d))) * .55, -.7, .7) * (this.faceT || 1);
     const munch = this.mode === 'play' && this.near ? Math.max(0, Math.sin(this.t * 20)) * .035 : 0;
     const face = Math.abs(this.face) < .12 ? .12 * Math.sign(this.face || 1) : this.face;
-    CP.drawHead(g, h[0], h[1] - (this.wig ? Math.sin(this.t * 14) * R * .06 * this.wig : 0), R, face, tilt + (hero ? Math.sin(this.t * 1.1) * .04 : 0), this.chomp * .14 * Math.sin((1 - this.chomp) * PI * 3) + munch, this.blink);
+    const dz = !hero && this.daze && this.t - this.daze < DAZE ? 1 - (this.t - this.daze) / DAZE : 0, dzk = Math.min(1, dz * 2.5);
+    CP.drawHead(g, h[0] + Math.cos(this.t * 13) * R * .12 * dzk, h[1] - (this.wig ? Math.sin(this.t * 14) * R * .06 * this.wig : 0) + Math.sin(this.t * 13) * R * .06 * dzk, R, face, tilt + (hero ? Math.sin(this.t * 1.1) * .04 : 0) + Math.sin(this.t * 13) * .5 * dzk, this.chomp * .14 * Math.sin((1 - this.chomp) * PI * 3) + munch, this.blink);
+    if (dz) this.drawDaze(g, h[0], h[1], R);
     g.restore();
   }
   drawTransform(g) {
