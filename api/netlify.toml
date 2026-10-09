@@ -2,11 +2,6 @@
   publish = "public"
 [functions]
   node_bundler = "esbuild"
-[[headers]]
-  for = "/rishi.ics"
-  [headers.values]
-    Content-Type = "text/calendar; charset=utf-8"
-    Content-Disposition = "inline; filename=rishi-first-birthday.ics"
 [[redirects]]
   from = "/rsvp-host"
   to = "/api/host?key=DytHoZZTdALZlB5Z"
