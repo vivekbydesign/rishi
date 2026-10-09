@@ -119,7 +119,7 @@ let openSheet = $('introSheet');
 const show = id => { card.classList.toggle('intro-open', id === 'introSheet'); if (openSheet) openSheet.classList.remove('open'); openSheet = id ? $(id) : null; if (openSheet) { openSheet.classList.add('open'); card.classList.add('sheet-open'); if (id === 'introSheet') { if (state.name) $('nameInput').value = state.name; requestAnimationFrame(introCat); requestAnimationFrame(scatterDots); } } else card.classList.remove('sheet-open'); };
 $('scrim').onclick = () => { if (openSheet && openSheet.id !== 'resultSheet') goInvite(); };
 const fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
-const COACH = fine ? ['Use arrow keys to eat\nAvoid walls and sweets', 'Use arrow keys to eat\nAvoid walls and sweets'] : ['Swipe to eat\nAvoid walls and sweets', 'Swipe to eat\nAvoid walls and sweets'];
+const COACH = fine ? ['Arrow keys to eat', 'Arrow keys to eat'] : ['Swipe to eat', 'Swipe to eat'];
 const coach = (i, on) => { const t = document.querySelector('.coach-t'); if (t.dataset.txt !== COACH[i]) { t.dataset.txt = COACH[i]; t.setAttribute('aria-label', COACH[i]); t.innerHTML = [...COACH[i]].map((c, k) => c === '\n' ? '<br>' : `<span aria-hidden="true" style="--k:${k}">${c === ' ' ? '&nbsp;' : c}</span>`).join(''); } $('coach').classList.toggle('show', on); };
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (openSheet) goInvite(); else if (game && (game.mode === 'play' || game.mode === 'over')) goInvite(); return; }
