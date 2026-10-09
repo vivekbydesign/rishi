@@ -54,9 +54,9 @@ const shimmer = () => {
   lfo.frequency.value = 9; lg.gain.value = .03; lfo.connect(lg).connect(g.gain);
   n.connect(hp).connect(g).connect(out); n.start(t); n.stop(t + 1.65); lfo.start(t); lfo.stop(t + 1.65);
 };
-/* wall bump: a cartoon boing (Mixkit "Boing", free sound effects license) */
+/* wall bump: a cartoon boing (Freesound #731262 by sdroliasnick, CC0) */
 let boingBuf = null, boingLoading = false;
-const loadBoing = a => { if (boingBuf || boingLoading || !a) return; boingLoading = true; fetch('assets/boing.mp3').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => a.decodeAudioData(b, ok, no))).then(b => { boingBuf = b; }).catch(() => { boingLoading = false; }); };
+const loadBoing = a => { if (boingBuf || boingLoading || !a) return; boingLoading = true; fetch('assets/boing.mp3?v=2').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => a.decodeAudioData(b, ok, no))).then(b => { boingBuf = b; }).catch(() => { boingLoading = false; }); };
 const boing = () => { const a = audio(); if (!a || state.muted) return; loadBoing(a); if (!boingBuf) return;
   const s = a.createBufferSource(), g = a.createGain(); s.buffer = boingBuf; g.gain.value = .5; s.connect(g).connect(a.destination); s.start(a.currentTime + .01); };
 const chime = () => { [659, 784, 988].forEach((f, i) => tone(f, i * .08, .5, 'sine', .08)); };
