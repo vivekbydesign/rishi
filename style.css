@@ -422,3 +422,6 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 
 .board .rk b.gold{display:flex;align-items:center;gap:2px;padding:0 5px 0 4px;background:#f6c544;color:#5a3d00;right:-6px}
 .board .rk b.gold svg{width:11px;height:11px}
+/* the top pills turn see-through while the caterpillar crawls up underneath them */
+.hud > *{transition:opacity .3s var(--ease-out)}
+.peek .hud > *{opacity:.3}

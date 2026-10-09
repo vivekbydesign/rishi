@@ -4,6 +4,7 @@
 const { clamp, lerp, ease, angDiff, rng, TAU, IMG, SEG, FOOD, DPR } = CP;
 const PI = Math.PI;
 const DAZE = 1.3; // seconds he stands dazed after bumping into an edge
+const WALL_PENALTY = 3; // seconds added to the clock for each edge hit
 
 const DAYS = CP.DAYS = [
   { day: 'Monday', what: 'he ate through one apple.', foods: ['apple'], tex: 'apple' },
@@ -385,6 +386,8 @@ class Game {
       this.phase += this.speed * dt / (this.R * 2.4) * TAU;
       const hh = this.at(this.headS);
       this.checkWall(hh);
+      // the top pills turn see-through while he's up underneath them
+      const peek = hh[1] < this.top - 10; if (peek !== this._peek) { this._peek = peek; this.card.classList.toggle('peek', peek); }
       if (this.timing && t > this.safeUntil) this.checkBump(hh);
       this.near = 0;
       this.foods.forEach(f => { if (f.eaten >= 0 || f.gone || t < f.born) return; const d = Math.hypot(f.x - hh[0], f.y - hh[1]); if (d < 70 && !f.decoy) this.near = 1; if (d < this.R * 1.5 + (f.bites > 1 ? f.w * .3 : 26 * this.fs)) { if (f.bites > 1) this.bite(f, hh); else this.eat(f); } });
@@ -392,6 +395,7 @@ class Game {
     } else if (this.mode === 'transform') { this.stepTransform(dt); if (this.tf.t > 4.8) this.flit(dt); }
     else if (this.mode === 'rest') this.stepButterfly(dt);
     else if (this.mode === 'leave') { this.lv.t += dt; if (this.lv.em && !this.lv.burst && this.lv.t > this.lv.em * .55) { this.lv.burst = 1; this.confetti(this.lv.path[0][0], this.lv.path[0][1] + 10, 70); } const st = (this.lv.em || 0) + (this.lv.hv || 0); this.wingGoal = this.lv.t < st ? .42 : 1; if (this.lv.t > (this.lv.em || 0)) this.flit(dt); if (this.lv.out || this.lv.t > st + (this.lv.fd || 5.4)) this.buildHero(true); }
+    if (this.mode !== 'play' && this._peek) { this._peek = false; this.card.classList.remove('peek'); }
     if (this._m !== this.mode) { this._m = this.mode; this.card.classList.toggle('behind', this.mode === 'hero'); }
     this.nShow = lerp(this.nShow, this.fat ? lerp(this.n, 11, ease.inOut(this.fat)) : this.n, 1 - Math.exp(-dt * 6));
     this.wig = Math.max(0, this.wig - dt * .7);
@@ -512,23 +516,23 @@ class Game {
     }
   }
   // the field wraps: out one side, back in the other (the whole trail shifts, segments wrap one by one when drawn)
-  field() { const p = this.R * 1.6; return { x0: -p, y0: this.top - 30 - p, w: this.W + p * 2, h: this.H - 40 - this.top + 30 + p * 2 }; }
+  field() { const p = this.R * 1.6; return { x0: -p, y0: -p, w: this.W + p * 2, h: this.H - 40 + p * 2 }; }
   wrapPt(x, y) { const f = this.field(); return [f.x0 + (((x - f.x0) % f.w) + f.w) % f.w, f.y0 + (((y - f.y0) % f.h) + f.h) % f.h]; }
   // the edges of the page are walls: touching one costs time and leaves him dazed for a moment, then he carries on along the wall
-  bounds() { const m = this.R * .5; return { x0: m, x1: this.W - m, y0: this.top - 30, y1: this.H - 34 - m }; }
+  bounds() { const m = this.R * .5; return { x0: m, x1: this.W - m, y0: m, y1: this.H - 34 - m }; }
   dazed() { return this.daze && this.t - this.daze < DAZE; }
   checkWall(h) {
     const b = this.bounds(); if (h[0] > b.x0 && h[0] < b.x1 && h[1] > b.y0 && h[1] < b.y1) return;
     if (!this.timing || this.dazed()) return;
     const side = h[0] <= b.x0 ? 'left' : h[0] >= b.x1 ? 'right' : h[1] <= b.y0 ? 'top' : 'bottom';
-    this.walls++; this.penalty += 2; this.daze = this.t; this.safeUntil = this.t + DAZE + .8; this.wig = 1.4; this.turns = [];
+    this.walls++; this.penalty += WALL_PENALTY; this.daze = this.t; this.safeUntil = this.t + DAZE + .8; this.wig = 1.4; this.turns = [];
     // step back inside and face along the wall, toward the middle of the page
     const T = this.trail, L = T.length - 1, m = this.R * 1.1, x = clamp(h[0], b.x0 + m, b.x1 - m), y = clamp(h[1], b.y0 + m, b.y1 - m);
     if (L > 0) { this.cum[L] = this.cum[L - 1] + Math.hypot(x - T[L - 1][0], y - T[L - 1][1]); T[L] = [x, y]; this.headS = this.cum[L]; }
     const cx = this.W / 2 - x, cy = (b.y0 + b.y1) / 2 - y, g = Math.round(this.dirGoal / (PI / 2)) * (PI / 2);
     this.dirGoal = [g + PI / 2, g - PI / 2].sort((p, q) => (Math.cos(q) * cx + Math.sin(q) * cy) - (Math.cos(p) * cx + Math.sin(p) * cy))[0];
     for (let i = 0; i < 10; i++) { const a = this.dir + PI + (this.rng() - .5) * 2.2, v = 50 + this.rng() * 110; this.particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: 1.4 + this.rng() * 2.2, col: ['#e2412b', '#4c9a2a', '#f2c230'][i % 3], life: .5 + this.rng() * .4, age: 0, g: 300 }); }
-    this.particles.push({ x: clamp(x, 34, this.W - 34), y: Math.max(y - this.R * 2, b.y0 + 20), vx: 0, vy: -40, r: 0, txt: '+2s', life: 1.3, age: 0, g: 0, drag: .4 });
+    this.particles.push({ x: clamp(x, 34, this.W - 34), y: Math.max(y - this.R * 2, 24), vx: 0, vy: -40, r: 0, txt: '+' + WALL_PENALTY + 's', life: 1.3, age: 0, g: 0, drag: .4 });
     this.hooks.onWall && this.hooks.onWall(this.walls, side);
   }
   // little stars circling his head while he's dazed

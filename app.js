@@ -54,15 +54,17 @@ const shimmer = () => {
   lfo.frequency.value = 9; lg.gain.value = .03; lfo.connect(lg).connect(g.gain);
   n.connect(hp).connect(g).connect(out); n.start(t); n.stop(t + 1.65); lfo.start(t); lfo.stop(t + 1.65);
 };
-/* wall bump: a soft sad-trombone "wah wah wah waaah" */
-let wahBuf = null, wahLoading = false;
-const loadWah = a => { if (wahBuf || wahLoading || !a) return; wahLoading = true; fetch('assets/trombone.mp3').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => a.decodeAudioData(b, ok, no))).then(b => { wahBuf = b; }).catch(() => { wahLoading = false; }); };
-const wop = () => { const a = audio(); if (!a || state.muted) return; loadWah(a);
-  if (wahBuf) { const s = a.createBufferSource(), g = a.createGain(); s.buffer = wahBuf; g.gain.value = .25; s.connect(g).connect(a.destination); s.start(a.currentTime + .02); return; }
-  const t0 = a.currentTime + .05, lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 4; lp.connect(a.destination);
-  [[392, 0, .26], [370, .3, .26], [349, .6, .26], [330, .9, .95]].forEach(([f, s, d], i) => { const o = a.createOscillator(), g = a.createGain(), t = t0 + s; o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t);
-    if (i === 3) { const l = a.createOscillator(), lg = a.createGain(); l.frequency.value = 6; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(9, t + .3); l.connect(lg).connect(o.frequency); l.start(t); l.stop(t + d); o.frequency.linearRampToValueAtTime(f * .94, t + d); }
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.055, t + .05); g.gain.setValueAtTime(.055, t + d * .7); g.gain.exponentialRampToValueAtTime(.001, t + d); o.connect(g).connect(lp); o.start(t); o.stop(t + d + .05); }); };
+/* wall bump: a cartoon "bonk" on the head, then little birds tweeting round and round */
+const tweety = () => { const a = audio(); if (!a || state.muted) return; const t0 = a.currentTime + .02;
+  const o = a.createOscillator(), g = a.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(520, t0); o.frequency.exponentialRampToValueAtTime(140, t0 + .14);
+  g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(.32, t0 + .006); g.gain.exponentialRampToValueAtTime(.0001, t0 + .22); o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + .25);
+  const pan = a.createStereoPanner ? a.createStereoPanner() : null, out = a.createGain(); out.gain.value = 1; if (pan) { out.connect(pan).connect(a.destination); } else out.connect(a.destination);
+  for (let i = 0; i < 6; i++) { const t = t0 + .2 + i * .19 + Math.random() * .03, f = 2900 + (i % 3) * 380 + Math.random() * 120, c = a.createOscillator(), cg = a.createGain();
+    c.type = 'sine'; c.frequency.setValueAtTime(f * .8, t); c.frequency.exponentialRampToValueAtTime(f * 1.25, t + .045); c.frequency.exponentialRampToValueAtTime(f * .9, t + .09);
+    cg.gain.setValueAtTime(.0001, t); cg.gain.exponentialRampToValueAtTime(.06 * (1 - i * .1), t + .012); cg.gain.exponentialRampToValueAtTime(.0001, t + .1);
+    c.connect(cg).connect(out); c.start(t); c.stop(t + .12);
+    if (pan) pan.pan.setValueAtTime(Math.sin(i * 2.1) * .7, t); }
+};
 const chime = () => { [659, 784, 988].forEach((f, i) => tone(f, i * .08, .5, 'sine', .08)); };
 const setMute = m => { state.muted = m; localStorage.setItem('rishi1.muted', m ? '1' : '0'); $('muteBtn').classList.toggle('muted', m); $('muteBtn').setAttribute('aria-pressed', m); $('muteBtn').setAttribute('aria-label', m ? 'Sound off' : 'Sound on'); };
 setMute(state.muted);
@@ -189,7 +191,7 @@ const hooks = {
   onFly() { card.classList.add('reveal'); card.classList.remove('metamorph'); setTimeout(() => card.classList.remove('reveal'), 3200); },
   onTransformDone() { results(); },
   onInput(d, t) { const r = state.run; if (!r) return; if (r.t0 == null) r.t0 = t; if (r.moves.length < 60) r.moves.push(d + ' ' + (t - r.t0).toFixed(1)); },
-  onWall(n, side) { if (state.run) { state.run.wall = side; keepRun(); } haptic([40, 30, 60], 2); wop(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); },
+  onWall(n, side) { if (state.run) { state.run.wall = side; keepRun(); } haptic([40, 30, 60], 2); tweety(); const t = $('timer'); t.classList.remove('hit'); void t.offsetWidth; t.classList.add('hit'); $('coach').classList.remove('show'); },
 };
 
 /* every game is logged for the host: who played, how far they got, and how it ended.
@@ -207,7 +209,7 @@ addEventListener('pagehide', () => { if (state.run && game && /play|hatch/.test(
 const tick = () => { if (game && game.mode === 'play') $('timer').firstChild.nodeValue = fmt(game.score()); requestAnimationFrame(tick); };
 
 function startGame() {
-  show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); bannerOff(); loadChomp(audio()); loadWah(audio()); card.classList.add('playing');
+  show(null); ++state.cdTok; ['toast', 'countdown', 'sweetNote', 'coach', 'goal'].forEach(id => $(id).classList.remove('show')); bannerOff(); loadChomp(audio()); card.classList.add('playing');
   $('dayName').textContent = 'Get ready'; $('dayFood').textContent = ''; $('timer').firstChild.nodeValue = '0';
   game.startPlay(); beginRun();
 }
