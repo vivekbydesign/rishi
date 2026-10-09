@@ -408,7 +408,7 @@ input.bad{border-color:var(--red);box-shadow:0 0 0 4px rgba(224,41,27,.14)}
 .db-what{font-family:var(--hand);font-size:18px;letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
 .db-food{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin-top:8px;max-width:280px;white-space:normal}
 .db-food img{height:28px;width:auto}
-.coach-t{white-space:nowrap;font-size:clamp(16px,5vw,20px)}
+.coach-t{white-space:pre;font-size:clamp(16px,5vw,20px)}
 .daybub{padding:10px 22px 12px}.db-day{font-size:30px;background-size:130px}.db-what{font-size:15px;letter-spacing:.12em}.db-food{margin-top:6px;max-width:240px}.db-food img{height:22px}
 .coach-t span{display:inline-block}.coach.show .coach-t span{animation:coachWave 2.6s ease-in-out infinite;animation-delay:calc(var(--k) * 45ms)}@keyframes coachWave{0%,40%,100%{transform:none}20%{transform:translateY(-2px) scale(1.06)}}@media (prefers-reduced-motion:reduce){.coach.show .coach-t span{animation:none}}
 #introSheet .rules-txt span{white-space:nowrap;text-wrap:nowrap}#introSheet .rules-txt{font-size:min(17px,4.6cqw)}
