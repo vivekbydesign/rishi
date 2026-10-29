@@ -8,7 +8,7 @@ It should feel like a page from Eric Carle's book came alive: clean, bold and ch
 
 ## Facts (do not change)
 - Rishi's first birthday. Sunday, November 22, 2026 at 3:00 PM.
-- 2459 NE Daphne St, Issaquah, WA.
+- Address omitted in this version.
 - Runs locally only for now. No deployment.
 
 ## Art direction (most important)

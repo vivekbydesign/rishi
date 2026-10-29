@@ -9,10 +9,8 @@ const PID = localStorage.getItem('rishi1.pid') || (() => { const v = (crypto.ran
 const state = { cdTok: 0, dbTok: 0, name: localStorage.getItem(NAME_KEY) || '', lastMs: 0, muted: localStorage.getItem('rishi1.muted') === '1' };
 
 /* links */
-const MAP = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('2459 NE Daphne St, Issaquah, WA');
-$('mapLink').href = MAP; $('mapLink2').href = MAP;
 // a real .ics file opens the Add to Calendar sheet on iPhone; Android goes straight to Google Calendar
-if (/android/i.test(navigator.userAgent)) { const cl = $('calLink'); cl.removeAttribute('download'); cl.target = '_blank'; cl.rel = 'noopener'; cl.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&' + new URLSearchParams({ text: "Rishi's first birthday", dates: '20261122T190000Z/20261122T210000Z', location: '2459 NE Daphne St, Issaquah, WA', details: 'One very hungry little caterpillar is turning one! https://happybirthdayrishi.com' }); }
+if (/android/i.test(navigator.userAgent)) { const cl = $('calLink'); cl.removeAttribute('download'); cl.target = '_blank'; cl.rel = 'noopener'; cl.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&' + new URLSearchParams({ text: "Rishi's first birthday", dates: '20261122T190000Z/20261122T210000Z', details: 'One very hungry little caterpillar is turning one! https://vivekbydesign.github.io/rishi/' }); }
 else { $('calLink').removeAttribute('download'); $('calLink').href = 'rishi.ics'; }
 
 /* RISHI letters in painted paper */
@@ -240,7 +238,7 @@ const paintRsvp = pop => { const r = readRsvp(), d = $('rsvpDone');
 const setGo = go => { rs.go = go; $('rsvpSheet').classList.toggle('no', go === 'no');
   document.querySelectorAll('#rsvpSheet .seg button').forEach(b => b.setAttribute('aria-checked', b.dataset.go === go));
   $('rsvpTitle').textContent = go === 'yes' ? 'Yay, see you there!' : "We'll miss you!";
-  $('rsvpSub').textContent = go === 'yes' ? 'Sunday, Nov 22 at 11 AM · 2459 NE Daphne St' : "Thanks for letting us know.";
+  $('rsvpSub').textContent = go === 'yes' ? 'Sunday, Nov 22 at 11 AM' : "Thanks for letting us know.";
   $('rsvpSend').textContent = go === 'yes' ? 'Send RSVP' : 'Send'; };
 const paintCount = () => { $('cA').textContent = rs.a; $('cK').textContent = rs.k;
   document.querySelectorAll('.st-b').forEach(b => { const v = rs[b.dataset.k], d = +b.dataset.d; b.disabled = d < 0 ? v <= (b.dataset.k === 'a' ? 1 : 0) : v >= 10; }); };

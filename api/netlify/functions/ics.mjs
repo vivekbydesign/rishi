@@ -12,7 +12,6 @@ export default async () => {
     'DTSTART:20261122T190000Z',
     'DTEND:20261122T210000Z',
     "SUMMARY:Rishi's first birthday",
-    'LOCATION:2459 NE Daphne St\\, Issaquah\\, WA',
     'DESCRIPTION:One very hungry little caterpillar is turning one!',
     'END:VEVENT',
     'END:VCALENDAR',
