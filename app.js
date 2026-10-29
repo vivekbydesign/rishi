@@ -10,8 +10,6 @@ const state = { cdTok: 0, dbTok: 0, name: localStorage.getItem(NAME_KEY) || '', 
 
 /* links */
 // a real .ics file opens the Add to Calendar sheet on iPhone; Android goes straight to Google Calendar
-if (/android/i.test(navigator.userAgent)) { const cl = $('calLink'); cl.removeAttribute('download'); cl.target = '_blank'; cl.rel = 'noopener'; cl.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&' + new URLSearchParams({ text: "Rishi's first birthday", dates: '20261122T190000Z/20261122T210000Z', details: 'One very hungry little caterpillar is turning one! https://vivekbydesign.github.io/rishi/' }); }
-else { $('calLink').removeAttribute('download'); $('calLink').href = 'rishi.ics'; }
 
 /* RISHI letters in painted paper */
 const LT = [['R', 'green'], ['I', 'orange'], ['S', 'redone'], ['H', 'violet'], ['I', 'blue']];
